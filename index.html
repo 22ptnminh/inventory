@@ -409,41 +409,102 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
 
     <!-- gift type overview cards -->
     <div class="gt-overview">
-      <div class="gt-card gt-topup on" onclick="showGt(0,this)">
-        <div class="gt-icon">💳</div>
-        <div class="gt-name">Topup đối tác</div>
-        <div class="gt-desc">Nạp thẳng qua API</div>
-        <div class="gt-eg">Điện thoại, ví điện tử, VETC</div>
-      </div>
-      <div class="gt-card gt-booking" onclick="showGt(1,this)">
-        <div class="gt-icon">📅</div>
-        <div class="gt-name">Quà booking</div>
-        <div class="gt-desc">Đặt chỗ realtime</div>
-        <div class="gt-eg">DragonPass, phòng chờ, spa</div>
-      </div>
-      <div class="gt-card gt-ubcode" onclick="showGt(2,this)">
-        <div class="gt-icon">🎫</div>
-        <div class="gt-name">CashVoucher UrBox</div>
-        <div class="gt-desc">UB tự sinh mã nội bộ</div>
-        <div class="gt-eg">Voucher giảm giá, ưu đãi UB</div>
-      </div>
-      <div class="gt-card gt-stock" onclick="showGt(3,this)">
-        <div class="gt-icon">🗂</div>
-        <div class="gt-name">Evoucher đối tác</div>
-        <div class="gt-desc">Mã nhập kho sẵn</div>
-        <div class="gt-eg">Grab, CGV, Shopee, Garena</div>
-      </div>
-      <div class="gt-card gt-physical" onclick="showGt(4,this)">
+      <div class="gt-card gt-physical" onclick="showGt(0,this)">
         <div class="gt-icon">📦</div>
         <div class="gt-name">Quà vật lý</div>
         <div class="gt-desc">Ship hàng tận nơi</div>
         <div class="gt-eg">Hộp quà, mỹ phẩm, đặc sản</div>
       </div>
+      <div class="gt-card gt-topup" onclick="showGt(1,this)">
+        <div class="gt-icon">💳</div>
+        <div class="gt-name">Nạp trực tiếp</div>
+        <div class="gt-desc">API đối tác nạp thẳng</div>
+        <div class="gt-eg">Nạp điện thoại, ví điện tử</div>
+      </div>
+      <div class="gt-card gt-ubcode" onclick="showGt(2,this)">
+        <div class="gt-icon">🎫</div>
+        <div class="gt-name">UB sinh mã</div>
+        <div class="gt-desc">Tự gen mã nội bộ</div>
+        <div class="gt-eg">Voucher giảm giá UrBox</div>
+      </div>
+      <div class="gt-card gt-booking" onclick="showGt(3,this)">
+        <div class="gt-icon">📅</div>
+        <div class="gt-name">Booking dịch vụ</div>
+        <div class="gt-desc">Đặt chỗ realtime</div>
+        <div class="gt-eg">Phòng chờ, resort, spa</div>
+      </div>
+      <div class="gt-card gt-stock" onclick="showGt(4,this)">
+        <div class="gt-icon">🗂</div>
+        <div class="gt-name">Code nhập kho</div>
+        <div class="gt-desc">Redis/MySQL có sẵn</div>
+        <div class="gt-eg">Grab, CGV, Shopee, game</div>
+      </div>
     </div>
 
     <!-- gift type flows -->
-    <!-- GT0: Topup đối tác -->
+    <!-- GT0: Quà vật lý -->
     <div class="gt-flow on" id="gt0"><div class="arch">
+      <div class="layer ly-purple">
+        <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đổi điểm lấy hộp quà</div>
+        <div class="layer-body"><div class="g3">
+          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>Mai · campaign: VIB-GOLD-2024 · siteUserId: VIB-HCM-00512</em></div>
+          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Chọn "Hộp quà Tết 2024" · Nhập địa chỉ giao hàng · Bấm Đổi ngay</em></div>
+          <div class="box"><strong>Điều kiện</strong><em>Giá: 80.000 điểm · Số dư: 120.000 điểm ✓ · Địa chỉ: 12 Lê Lợi, Q.1, HCM</em></div>
+        </div></div>
+      </div>
+      <div class="layer-arr">↓<span>Gửi yêu cầu + địa chỉ giao hàng xuống UrCard</span></div>
+      <div class="layer ly-blue">
+        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, tạo đơn ship</div>
+        <div class="layer-body"><div class="g3">
+          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 120.000 → 40.000 · Đơn #ORD-20240125-5501 · PROCESSING</em></div>
+          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Lưu địa chỉ giao hàng</strong><em>shipping_address: "12 Lê Lợi, Q.1, HCM" · recipient: Mai · phone: 090xxxxxxx</em></div>
+          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Đây là quà nhóm (B) — bất đồng bộ</strong><em>Chưa biết kết quả ship thật ngay · timeoutPolicy=MANUAL_HOLD (không tự hoàn khi hết hạn vì hàng có thể đang trên đường)</em></div>
+        </div></div>
+      </div>
+      <div class="layer-arr">↓<span>Điểm đã trừ · Gọi Inventory xử lý đơn vật lý</span></div>
+      <div class="layer ly-green">
+        <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — outputType: PHYSICAL (ship hàng)</div>
+        <div class="layer-body">
+          <div class="info">product_id = GIFT-BOX-TET-2024 → outputType: <strong>PHYSICAL</strong> · Không lấy mã code · Trừ tồn kho SKU → đẩy đơn hãng vận chuyển · <strong>Trả về ngay: "đã đẩy đơn, đang chờ carrier xác nhận"</strong> — không phải kết quả giao hàng thật</div>
+          <div class="g2">
+            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Trừ tồn kho</strong><em>SKU: GIFT-BOX-TET-001 · stock: 45 → 44 · warehouse: HCM-01</em></div>
+            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">② Tạo đơn vận chuyển</strong><em>Đẩy đơn GHTK: ship_order_id=GHTK-2024-88201 · ETA: 2-3 ngày · trạng thái: SHIPPING_PENDING</em></div>
+          </div>
+        </div>
+      </div>
+      <div class="layer-arr">↓<span>Đơn ship tạo xong (chưa giao) · Inventory trả về "đang chờ" cho UrCard</span></div>
+      <div class="layer ly-teal">
+        <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Không dùng (quà vật lý dùng kho hàng vật lý)</div>
+        <div class="layer-body">
+          <div class="box" style="border-color:#e2e8f0;background:#f8fafc;color:#94a3b8"><strong style="color:#94a3b8">⊘ Bỏ qua kho mã</strong><em>Không có codex record · Không Redis · Thay vào đó: WMS (Warehouse Mgmt) quản lý SKU + GHTK/GHN quản lý vận đơn</em></div>
+        </div>
+      </div>
+      <div class="layer-arr">↓<span>UrCard nhận "đang chờ" → Order chuyển AWAITING_CALLBACK, không phải COMPLETED</span></div>
+      <div class="layer ly-orange">
+        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Order ở trạng thái chờ, chưa phải thành công cuối cùng</div>
+        <div class="layer-body"><div class="g3">
+          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">⏳ Order AWAITING_CALLBACK</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240125-5501 → AWAITING_CALLBACK · externalRef=GHTK-2024-88201 · callbackDeadline: +5 ngày</em></div>
+          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Push notification</strong><em>"Đơn hàng đang giao · Mã vận đơn GHTK-2024-88201 · ETA: 27/01/2024"</em></div>
+          <div class="box"><strong>Chưa có kết quả cuối</strong><em>Không phải COMPLETED — chờ webhook giao hàng thật từ GHTK</em></div>
+        </div>
+        <div class="note">✓ Điểm trừ ngay tại tầng 2 · Nhưng đơn CHƯA hoàn tất — đây là quà nhóm (B), khác với voucher/mã lấy ngay (nhóm A)</div>
+        </div>
+      </div>
+      <div class="layer-arr">↓<span>2-3 ngày sau · GHTK gọi webhook riêng về UrCard</span></div>
+      <div class="layer" style="border-color:#7dd3fc">
+        <div class="layer-head" style="background:#e0f2fe;color:#0369a1;border-bottom:1px solid #bae6fd"><div class="layer-num" style="background:#0369a1;color:#fff">6</div>Webhook Callback — GHTK báo trạng thái giao hàng</div>
+        <div class="layer-body"><div class="g3">
+          <div class="box" style="border-color:#7dd3fc;background:#f0f9ff"><strong style="color:#0369a1">🔗 POST /v1/webhooks/delivery-status</strong><em>ref_id=GHTK-2024-88201 · status=DELIVERED · Mai đã ký nhận</em></div>
+          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ UrCard tra externalRef → cập nhật Order</strong><em>ORD-20240125-5501: AWAITING_CALLBACK → COMPLETED</em></div>
+          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu status=FAILED_DELIVERY thay vì DELIVERED</strong><em>UrCard hoàn điểm: balance + 80.000 · Order → FAILED</em></div>
+        </div>
+        <div class="good">✓ Nếu quá callbackDeadline (5 ngày) mà GHTK không gọi webhook → timeoutPolicy=MANUAL_HOLD → cronjob chỉ cảnh báo Ops, không tự hoàn điểm (vì hàng có thể vẫn đang giao)</div>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- GT1: Nạp trực tiếp -->
+    <div class="gt-flow" id="gt1"><div class="arch">
       <div class="layer ly-purple">
         <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đổi điểm nạp điện thoại</div>
         <div class="layer-body"><div class="g3">
@@ -458,92 +519,52 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
         <div class="layer-body"><div class="g3">
           <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 200.000 → 150.000 · Đơn #ORD-20240310-7720 · PROCESSING</em></div>
           <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Lưu thông tin nạp</strong><em>phone: 0912xxxxxx · telco: VIETTEL · amount: 50.000đ</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu API nạp fail</strong><em>Hoàn điểm: balance + 50.000 · order → FAILED · Thông báo lỗi</em></div>
+          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Đây là quà nhóm (B) — bất đồng bộ</strong><em>Nhà mạng chỉ xác nhận "đã nhận lệnh", chưa chắc đã nạp xong · timeoutPolicy=AUTO_REFUND (có thể tra soát lại qua API Viettel trước khi hoàn)</em></div>
         </div></div>
       </div>
       <div class="layer-arr">↓<span>Điểm đã trừ · Gọi Inventory → API nhà mạng nạp thẳng</span></div>
       <div class="layer ly-green">
         <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — outputType: TOPUP_DIRECT (nạp qua API đối tác)</div>
         <div class="layer-body">
-          <div class="info">product_id = VIETTEL-50K → outputType: <strong>TOPUP_DIRECT</strong> · Gọi API nhà mạng Viettel nạp thẳng vào số điện thoại · Không phát mã code</div>
+          <div class="info">product_id = VIETTEL-50K → outputType: <strong>TOPUP_DIRECT</strong> · Gọi API nhà mạng Viettel · Không phát mã code · <strong>Viettel trả "đã tiếp nhận lệnh nạp"</strong>, kết quả nạp thật báo sau qua webhook riêng</div>
           <div class="g2">
             <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Gọi Viettel Topup API</strong><em>POST api.viettel.vn/topup · phone=0912xxxxxx · amount=50000 · ref=ORD-20240310-7720</em></div>
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">② Viettel xác nhận</strong><em>trans_id: VTL-2024031088821 · status: SUCCESS · balance nạp ngay</em></div>
+            <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">② Viettel tiếp nhận (chưa xác nhận xong)</strong><em>trans_id: VTL-2024031088821 · status: PROCESSING · Viettel sẽ webhook về sau</em></div>
           </div>
         </div>
       </div>
-      <div class="layer-arr">↓<span>Nạp thành công · Không có mã code · Trả kết quả về UrCard</span></div>
+      <div class="layer-arr">↓<span>Đã gửi lệnh, chưa có kết quả cuối · Inventory trả "đang xử lý" về UrCard</span></div>
       <div class="layer ly-teal">
         <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Không dùng (không phát mã, nạp trực tiếp)</div>
         <div class="layer-body">
-          <div class="box" style="border-color:#e2e8f0;background:#f8fafc;color:#94a3b8"><strong style="color:#94a3b8">⊘ Bỏ qua kho mã</strong><em>Không codex record · Không Redis · Viettel ghi nhận nội bộ · Tài khoản nạp ngay, không có code trung gian</em></div>
+          <div class="box" style="border-color:#e2e8f0;background:#f8fafc;color:#94a3b8"><strong style="color:#94a3b8">⊘ Bỏ qua kho mã</strong><em>Không codex record · Không Redis · Viettel xử lý nội bộ, kết quả trả qua webhook riêng chứ không qua kho mã</em></div>
         </div>
       </div>
-      <div class="layer-arr">↓<span>Trả kết quả về UrCard → App thông báo Tuấn</span></div>
+      <div class="layer-arr">↓<span>UrCard nhận "đang xử lý" → Order chuyển AWAITING_CALLBACK, không phải COMPLETED</span></div>
       <div class="layer ly-orange">
-        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Tuấn nhận SMS xác nhận nạp tiền</div>
+        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Order ở trạng thái chờ, chưa phải thành công cuối cùng</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240310-7720 → COMPLETED</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 App thông báo</strong><em>"Nạp 50.000đ Viettel vào 0912xxxxxx thành công"</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📲 SMS từ Viettel</strong><em>"So du cua ban da duoc nap 50,000d. So du hien tai: 52,350d"</em></div>
+          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">⏳ Order AWAITING_CALLBACK</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240310-7720 → AWAITING_CALLBACK · externalRef=VTL-2024031088821 · callbackDeadline: +2 phút</em></div>
+          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 App thông báo</strong><em>"Đang nạp 50.000đ Viettel vào 0912xxxxxx..."</em></div>
+          <div class="box"><strong>Chưa có kết quả cuối</strong><em>Không phải COMPLETED — chờ webhook nạp tiền thật từ Viettel</em></div>
         </div>
-        <div class="good">✓ ~0.6 giây · Nạp tức thì · Không có mã code · balance: 200k → 150k điểm</div>
+        <div class="note">✓ Điểm trừ ngay tại tầng 2 · Nhưng đơn CHƯA hoàn tất — cartpay hiện tại từng trả "SUCCESS" ở bước này ngay cả khi chưa biết kết quả thật; thiết kế mới tránh lặp lại lỗi đó</div>
+        </div>
+      </div>
+      <div class="layer-arr">↓<span>~vài giây sau · Viettel gọi webhook riêng về UrCard</span></div>
+      <div class="layer" style="border-color:#7dd3fc">
+        <div class="layer-head" style="background:#e0f2fe;color:#0369a1;border-bottom:1px solid #bae6fd"><div class="layer-num" style="background:#0369a1;color:#fff">6</div>Webhook Callback — Viettel báo kết quả nạp tiền</div>
+        <div class="layer-body"><div class="g3">
+          <div class="box" style="border-color:#7dd3fc;background:#f0f9ff"><strong style="color:#0369a1">🔗 POST /urcard/webhooks/topup-status</strong><em>trans_id=VTL-2024031088821 · status=SUCCESS · "So du hien tai: 52,350d"</em></div>
+          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ UrCard tra externalRef → cập nhật Order</strong><em>ORD-20240310-7720: AWAITING_CALLBACK → COMPLETED</em></div>
+          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu status=FAILED thay vì SUCCESS</strong><em>UrCard hoàn điểm: balance + 50.000 · Order → FAILED</em></div>
+        </div>
+        <div class="good">✓ Nếu quá callbackDeadline (2 phút) mà Viettel không gọi webhook → timeoutPolicy=AUTO_REFUND → cronjob tự tra soát lại qua API Viettel, nếu vẫn không xác nhận được thì tự động hoàn điểm + đánh FAILED</div>
         </div>
       </div>
     </div></div>
 
-    <!-- GT1: Quà booking -->
-    <div class="gt-flow" id="gt1"><div class="arch">
-      <div class="layer ly-purple">
-        <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đặt phòng chờ sân bay</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>An · campaign: TCB-INFINITE-2024 · siteUserId: TCB-HN-00712 · lounge_quota: 2</em></div>
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Vào "Đặc quyền" → Chọn "Phòng chờ Plaza Premium · HAN" · Chọn ngày 15/06 · Bấm Đặt chỗ</em></div>
-          <div class="box"><strong>Điều kiện</strong><em>lounge_quota: 2 ✓ · Sân bay: HAN · Ngày: 15/06/2024 · Giờ: 08:00</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Gửi yêu cầu + thông tin chuyến bay xuống UrCard</span></div>
-      <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ lượt trước, gọi Inventory đặt chỗ</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="deduct-quota" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ lượt</strong><em>lounge_quota: 2 → 1 · Đơn #ORD-20240615-0081 · PROCESSING</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Gửi thông tin đặt chỗ</strong><em>lounge_id: HAN-PLAZA-T2 · date: 2024-06-15 · time: 08:00 · pax: 1</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu API booking fail</strong><em>Hoàn lượt: lounge_quota + 1 · order → FAILED · Thông báo lỗi</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Lượt đã trừ · Inventory gọi DragonPass API đặt chỗ realtime</span></div>
-      <div class="layer ly-green">
-        <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — outputType: BOOKING (đặt chỗ realtime)</div>
-        <div class="layer-body">
-          <div class="info">product_id = LOUNGE-HAN-PLAZA → outputType: <strong>BOOKING</strong> · WhoExport=2 · Gọi DragonPass API đặt chỗ thực tế tại Plaza Premium HAN</div>
-          <div class="g2">
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Gọi DragonPass API</strong><em>POST api.dragonpass.com/lounge/book · lounge_id=HAN-T2-PLAZA · date=2024-06-15 · ref=ORD-20240615-0081</em></div>
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">② DragonPass xác nhận</strong><em>booking_ref=DP-2024061500081 · QR code · Slot confirmed · Valid: 08:00-12:00</em></div>
-          </div>
-        </div>
-      </div>
-      <div class="layer-arr">↓<span>Booking xác nhận · Trả mã QR về UrCard</span></div>
-      <div class="layer ly-teal">
-        <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Lưu booking ref vào codex</div>
-        <div class="layer-body"><div class="g2">
-          <div class="box" data-detail="redis-pop" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">📋 codex record</strong><em>code=DP-2024061500081 · WhoExport=2 · process=210 · expired: 2024-06-15 12:00</em></div>
-          <div class="box" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">🔑 Check-in tại phòng chờ</strong><em>An quét QR → DragonPass xác nhận → process: 210→300 (USED) · ghi nhận check-in time</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Trả booking ref về UrCard → App hiện QR cho An</span></div>
-      <div class="layer ly-orange">
-        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — An nhận QR, vào phòng chờ</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Lượt đã trừ từ tầng 2 · ORD-20240615-0081 → COMPLETED · lounge_quota: 1</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện QR trong App</strong><em>QR Code · "Plaza Premium T2 · 15/06/2024 · 08:00-12:00" · booking_ref: DP-2024061500081</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🛋 Vào phòng chờ</strong><em>An quét QR tại cửa → Nhân viên xác nhận → An vào phòng chờ thụ hưởng</em></div>
-        </div>
-        <div class="good">✓ ~1.5 giây · Booking realtime · lounge_quota: 2→1 · Slot đặt thành công</div>
-        </div>
-      </div>
-    </div></div>
-
-    <!-- GT2: CashVoucher UrBox -->
+    <!-- GT2: UB sinh mã -->
     <div class="gt-flow" id="gt2"><div class="arch">
       <div class="layer ly-purple">
         <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đổi điểm lấy Voucher UrBox</div>
@@ -594,8 +615,59 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       </div>
     </div></div>
 
-    <!-- GT3: Evoucher đối tác -->
+    <!-- GT3: Booking dịch vụ -->
     <div class="gt-flow" id="gt3"><div class="arch">
+      <div class="layer ly-purple">
+        <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đặt phòng chờ sân bay</div>
+        <div class="layer-body"><div class="g3">
+          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>An · campaign: TCB-INFINITE-2024 · siteUserId: TCB-HN-00712 · lounge_quota: 2</em></div>
+          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Vào "Đặc quyền" → Chọn "Phòng chờ Plaza Premium · HAN" · Chọn ngày 15/06 · Bấm Đặt chỗ</em></div>
+          <div class="box"><strong>Điều kiện</strong><em>lounge_quota: 2 ✓ · Sân bay: HAN · Ngày: 15/06/2024 · Giờ: 08:00</em></div>
+        </div></div>
+      </div>
+      <div class="layer-arr">↓<span>Gửi yêu cầu + thông tin chuyến bay xuống UrCard</span></div>
+      <div class="layer ly-blue">
+        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ lượt trước, gọi Inventory đặt chỗ</div>
+        <div class="layer-body"><div class="g3">
+          <div class="box" data-detail="deduct-quota" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ lượt</strong><em>lounge_quota: 2 → 1 · Đơn #ORD-20240615-0081 · PROCESSING</em></div>
+          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Gửi thông tin đặt chỗ</strong><em>lounge_id: HAN-PLAZA-T2 · date: 2024-06-15 · time: 08:00 · pax: 1</em></div>
+          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu API booking fail</strong><em>Hoàn lượt: lounge_quota + 1 · order → FAILED · Thông báo lỗi</em></div>
+        </div></div>
+      </div>
+      <div class="layer-arr">↓<span>Lượt đã trừ · Inventory gọi DragonPass API đặt chỗ realtime</span></div>
+      <div class="layer ly-green">
+        <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — outputType: BOOKING (đặt chỗ realtime)</div>
+        <div class="layer-body">
+          <div class="info">product_id = LOUNGE-HAN-PLAZA → outputType: <strong>BOOKING</strong> · WhoExport=2 · Gọi DragonPass API đặt chỗ thực tế tại Plaza Premium HAN</div>
+          <div class="g2">
+            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Gọi DragonPass API</strong><em>POST api.dragonpass.com/lounge/book · lounge_id=HAN-T2-PLAZA · date=2024-06-15 · ref=ORD-20240615-0081</em></div>
+            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">② DragonPass xác nhận</strong><em>booking_ref=DP-2024061500081 · QR code · Slot confirmed · Valid: 08:00-12:00</em></div>
+          </div>
+        </div>
+      </div>
+      <div class="layer-arr">↓<span>Booking xác nhận · Trả mã QR về UrCard</span></div>
+      <div class="layer ly-teal">
+        <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Lưu booking ref vào codex</div>
+        <div class="layer-body"><div class="g2">
+          <div class="box" data-detail="redis-pop" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">📋 codex record</strong><em>code=DP-2024061500081 · WhoExport=2 · process=210 · expired: 2024-06-15 12:00</em></div>
+          <div class="box" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">🔑 Check-in tại phòng chờ</strong><em>An quét QR → DragonPass xác nhận → process: 210→300 (USED) · ghi nhận check-in time</em></div>
+        </div></div>
+      </div>
+      <div class="layer-arr">↓<span>Trả booking ref về UrCard → App hiện QR cho An</span></div>
+      <div class="layer ly-orange">
+        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — An nhận QR, vào phòng chờ</div>
+        <div class="layer-body"><div class="g3">
+          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Lượt đã trừ từ tầng 2 · ORD-20240615-0081 → COMPLETED · lounge_quota: 1</em></div>
+          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện QR trong App</strong><em>QR Code · "Plaza Premium T2 · 15/06/2024 · 08:00-12:00" · booking_ref: DP-2024061500081</em></div>
+          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🛋 Vào phòng chờ</strong><em>An quét QR tại cửa → Nhân viên xác nhận → An vào phòng chờ thụ hưởng</em></div>
+        </div>
+        <div class="good">✓ ~1.5 giây · Booking realtime · lounge_quota: 2→1 · Slot đặt thành công</div>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- GT4: Code nhập kho -->
+    <div class="gt-flow" id="gt4"><div class="arch">
       <div class="layer ly-purple">
         <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đổi điểm lấy thẻ game</div>
         <div class="layer-body"><div class="g3">
@@ -648,56 +720,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
   </div><!-- /view1 -->
 
 </div>
-
-    <!-- GT4: Quà vật lý -->
-    <div class="gt-flow" id="gt4"><div class="arch">
-      <div class="layer ly-purple">
-        <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đổi điểm lấy hộp quà</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>Mai · campaign: VIB-GOLD-2024 · siteUserId: VIB-HCM-00512</em></div>
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Chọn "Hộp quà Tết 2024" · Nhập địa chỉ giao hàng · Bấm Đổi ngay</em></div>
-          <div class="box"><strong>Điều kiện</strong><em>Giá: 80.000 điểm · Số dư: 120.000 điểm ✓ · Địa chỉ: 12 Lê Lợi, Q.1, HCM</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Gửi yêu cầu + địa chỉ giao hàng xuống UrCard</span></div>
-      <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, tạo đơn ship</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 120.000 → 40.000 · Đơn #ORD-20240125-5501 · PROCESSING</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Lưu địa chỉ giao hàng</strong><em>shipping_address: "12 Lê Lợi, Q.1, HCM" · recipient: Mai · phone: 090xxxxxxx</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu ship fail</strong><em>Hoàn điểm: balance + 80.000 · order → FAILED</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Điểm đã trừ · Gọi Inventory xử lý đơn vật lý</span></div>
-      <div class="layer ly-green">
-        <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — outputType: PHYSICAL (ship hàng)</div>
-        <div class="layer-body">
-          <div class="info">product_id = GIFT-BOX-TET-2024 → outputType: <strong>PHYSICAL</strong> · Không lấy mã code · Trừ tồn kho SKU → đẩy đơn hãng vận chuyển</div>
-          <div class="g2">
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Trừ tồn kho</strong><em>SKU: GIFT-BOX-TET-001 · stock: 45 → 44 · warehouse: HCM-01</em></div>
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">② Tạo đơn vận chuyển</strong><em>Đẩy đơn GHTK: ship_order_id=GHTK-2024-88201 · ETA: 2-3 ngày</em></div>
-          </div>
-        </div>
-      </div>
-      <div class="layer-arr">↓<span>Đơn ship tạo xong · Trả tracking về UrCard</span></div>
-      <div class="layer ly-teal">
-        <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Không dùng (quà vật lý dùng kho hàng vật lý)</div>
-        <div class="layer-body">
-          <div class="box" style="border-color:#e2e8f0;background:#f8fafc;color:#94a3b8"><strong style="color:#94a3b8">⊘ Bỏ qua kho mã</strong><em>Không có codex record · Không Redis · Thay vào đó: WMS (Warehouse Mgmt) quản lý SKU + GHTK/GHN quản lý vận đơn</em></div>
-        </div>
-      </div>
-      <div class="layer-arr">↓<span>GHTK cập nhật trạng thái giao hàng về Inventory → UrCard → App</span></div>
-      <div class="layer ly-orange">
-        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Mai nhận tracking + hàng tận nhà</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240125-5501 → SHIPPING</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Push notification</strong><em>"Đơn hàng đang giao · Mã vận đơn GHTK-2024-88201 · ETA: 27/01/2024"</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📦 Giao hàng</strong><em>GHTK giao tận nhà · Mai ký nhận · order → DELIVERED</em></div>
-        </div>
-        <div class="good">✓ Điểm trừ ngay · Hàng giao 2-3 ngày · Tồn kho SKU cập nhật realtime</div>
-        </div>
-      </div>
-    </div></div>
 
 <style>
 /* ── view tabs ── */
