@@ -150,12 +150,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
         <div class="g3" style="margin-bottom:10px">
           <div class="box" data-detail="create-card" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">① Tìm thẻ — Không thấy</strong><em>Tra DB theo (campaign=SHB-PLATINUM-2024, siteUserId=SHB-HN-00281) · Kết quả: 0 thẻ → tạo thẻ mới</em></div>
           <div class="box" data-detail="create-card" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo thẻ mới tự động</strong><em>card_id: CARD-SHB-00281 · campaign: SHB-PLATINUM-2024 · siteUserId: SHB-HN-00281 · ACTIVE · 2024-01-15</em></div>
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">③ Tạo đơn + PENDING</strong><em>Đơn #ORD-20240115-0001 · product_id: POINT-TOPUP · amount: 50.000</em></div>
+          <div class="box" data-detail="topup-balance" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">③ Tạo transaction (không order)</strong><em>txn_id: TXN-20240115-0001 · type: TOPUP_BALANCE · amount: 50.000 · PENDING</em></div>
         </div>
         <div class="info" style="margin:0 0 8px">outputType = <strong>TOPUP_BALANCE</strong> → UrCard Core tự cộng điểm thẳng vào thẻ, <strong>không đẩy xuống Inventory</strong></div>
         <div class="g3">
           <div class="box" data-detail="topup-balance" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Cộng điểm vào thẻ</strong><em>card_id=CARD-SHB-00281 · balance: 0 → 50.000 điểm</em></div>
-          <div class="box" data-detail="topup-balance" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">📋 Order COMPLETED</strong><em>ORD-20240115-0001 · action=TOPUP_BALANCE · amount=50000 · COMPLETED</em></div>
+          <div class="box" data-detail="topup-balance" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">📋 Transaction COMPLETED</strong><em>TXN-20240115-0001 · action=TOPUP_BALANCE · amount=50000 · COMPLETED · <span style="color:#dc2626">Không có order</span></em></div>
           <div class="box"><strong>Không qua kho mã</strong><em>Không Redis · Không codex · Không WhoExport</em></div>
         </div>
         <div class="note" style="margin-top:10px">Thẻ unique theo cặp <strong>(campaign, siteUserId)</strong>. Tạo thẻ + tạo đơn + cộng điểm trong cùng transaction — fail thì rollback cả ba.</div>
@@ -204,13 +204,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer-body">
         <div class="g3" style="margin-bottom:10px">
           <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Tìm thẻ</strong><em>(campaign=SHB-PLATINUM-2024, siteUserId=SHB-HN-00281) → card_id=CARD-SHB-00281 · ACTIVE ✓</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo đơn (POM)</strong><em>Đơn #ORD-20240101-BATCH-00281 · CATALOG-RESORT-2 + CATALOG-LOUNGE-1 · PENDING</em></div>
+          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo transaction (không order)</strong><em>txn_id: TXN-20240101-BATCH-00281 · CATALOG-RESORT-2 + CATALOG-LOUNGE-1 · PENDING</em></div>
           <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">③ Miễn phí</strong><em>Đặc quyền thẻ Platinum, SHB trả chi phí toàn bộ</em></div>
         </div>
         <div class="info" style="margin:0 0 8px">outputType = <strong>TOPUP_CATALOG</strong> → UrCard Core tự cộng lượt thẳng vào thẻ, <strong>không đẩy xuống Inventory</strong></div>
         <div class="g3">
           <div class="box" data-detail="topup-catalog" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Cộng lượt vào thẻ</strong><em>CARD-SHB-00281 · resort_quota: 0→2 · lounge_quota: 0→1</em></div>
-          <div class="box" data-detail="topup-catalog" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">📋 Order COMPLETED</strong><em>ORD-20240101-BATCH-00281 · action=TOPUP_CATALOG · COMPLETED</em></div>
+          <div class="box" data-detail="topup-catalog" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">📋 Transaction COMPLETED</strong><em>TXN-20240101-BATCH-00281 · action=TOPUP_CATALOG · COMPLETED · <span style="color:#dc2626">Không có order</span></em></div>
           <div class="box"><strong>Không qua kho mã</strong><em>Không Redis · Không codex · Lượt gắn thẳng vào catalog thẻ</em></div>
         </div>
       </div>
@@ -257,8 +257,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, rồi gọi Inventory</div>
       <div class="layer-body"><div class="g3">
         <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra số dư</strong><em>Yêu cầu trừ 30.000 điểm · Hiện có 50.000 ✓</em></div>
-        <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo đơn + trừ điểm ngay</strong><em>Đơn #ORD-20240712-9921 · balance: 50.000 → 20.000 · status: PROCESSING</em></div>
-        <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu Inventory fail</strong><em>Hoàn điểm: balance + 30.000 · order → FAILED · Báo lỗi về App</em></div>
+        <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo order + txn, trừ điểm ngay</strong><em>ORD-20240712-9921 + TXN-20240712-9921 · balance: 50.000 → 20.000 · status: PROCESSING</em></div>
+        <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu Inventory fail</strong><em>Hoàn điểm: balance + 30.000 · order + txn → FAILED · Báo lỗi về App</em></div>
       </div></div>
     </div>
     <div class="layer-arr">↓<span>Điểm đã trừ · Gọi Inventory lấy mã · Nếu fail → hoàn điểm</span></div>
@@ -277,17 +277,17 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Lấy mã Grab</div>
       <div class="layer-body"><div class="g3">
         <div class="box" data-detail="grab-api" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Redis: Hết mã GRAB-50K</strong><em>Cache miss → fallback: đọc cấu hình product_id → WhoExport=2, api_id=GRAB_VN_001</em></div>
-        <div class="box" data-detail="grab-api" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">🔗 Gọi Grab API realtime</strong><em>POST api.grab.com/vouchers/issue · amount=50000 · ref=ORD-20240712-9921</em></div>
+        <div class="box" data-detail="grab-api" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">🔗 Gọi Grab API realtime</strong><em>POST api.grab.com/vouchers/issue · amount=50000 · ref=TXN-20240712-9921</em></div>
         <div class="box" data-detail="grab-api" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Grab trả về mã</strong><em>code: GRAB-XKQP-7291 · expired: 30/08/2024 · Lưu vào MySQL (codex) + Redis</em></div>
       </div>
-      <div class="note">codex: id=88821 · code=GRAB-XKQP-7291 · WhoExport=2 · process=210 (ISSUED) · transaction_id=ORD-20240712-9921</div>
+      <div class="note">codex: id=88821 · code=GRAB-XKQP-7291 · WhoExport=2 · process=210 (ISSUED) · transaction_id=TXN-20240712-9921</div>
       </div>
     </div>
     <div class="layer-arr">↓<span>Inventory trả mã về UrCard → COMPLETED → gửi kết quả Hoàng</span></div>
     <div class="layer ly-orange">
       <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Hoàng nhận mã</div>
       <div class="layer-body"><div class="g3">
-        <div class="box" data-detail="deduct-balance" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240712-9921 → COMPLETED · balance: 20.000</em></div>
+        <div class="box" data-detail="deduct-balance" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order + Txn COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240712-9921 + TXN-20240712-9921 → COMPLETED · balance: 20.000</em></div>
         <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện mã trên App</strong><em>"GRAB-XKQP-7291" kèm QR · HSD: 30/08/2024</em></div>
         <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🛒 Hoàng dùng tại Grab</strong><em>Nhập mã vào app Grab → giảm 50k đơn GrabFood</em></div>
       </div>
@@ -311,8 +311,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ lượt trước, rồi gọi Inventory</div>
       <div class="layer-body"><div class="g3">
         <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra lượt</strong><em>resort_quota: 2 · Yêu cầu: 1 ✓</em></div>
-        <div class="box" data-detail="deduct-quota" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo đơn + trừ lượt ngay</strong><em>Đơn #ORD-20240715-0044 · resort_quota: 2 → 1 · status: PROCESSING</em></div>
-        <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu Inventory fail</strong><em>Hoàn lượt: resort_quota + 1 · order → FAILED · Báo lỗi về App</em></div>
+        <div class="box" data-detail="deduct-quota" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo order + txn, trừ lượt ngay</strong><em>ORD-20240715-0044 + TXN-20240715-0044 · resort_quota: 2 → 1 · status: PROCESSING</em></div>
+        <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu Inventory fail</strong><em>Hoàn lượt: resort_quota + 1 · order + txn → FAILED · Báo lỗi về App</em></div>
       </div></div>
     </div>
     <div class="layer-arr">↓<span>Lượt đã trừ · Gọi Inventory lấy mã booking · Nếu fail → hoàn lượt</span></div>
@@ -331,7 +331,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Lấy mã booking resort</div>
       <div class="layer-body"><div class="g3">
         <div class="box" data-detail="redis-pop" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Redis: Còn mã (Happy Path)</strong><em>Pop từ Redis pool → UB-RESORT-BK-X91K · Tức thì, không gọi API ngoài</em></div>
-        <div class="box" data-detail="redis-pop" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">📋 Cập nhật trạng thái</strong><em>codex id=55210 · code=UB-RESORT-BK-X91K · process: 111→210 (ISSUED) · gắn ORD-20240715-0044</em></div>
+        <div class="box" data-detail="redis-pop" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">📋 Cập nhật trạng thái</strong><em>codex id=55210 · code=UB-RESORT-BK-X91K · process: 111→210 (ISSUED) · gắn TXN-20240715-0044</em></div>
         <div class="box"><strong>Tồn kho sau giao dịch</strong><em>Redis pool RESORT-UBDN-1N: còn 14 mã · MySQL: 1 mã → USED_PENDING</em></div>
       </div></div>
     </div>
@@ -339,7 +339,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
     <div class="layer ly-orange">
       <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Hoàng nhận mã &amp; check-in</div>
       <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Lượt đã trừ từ tầng 2 · ORD-20240715-0044 → COMPLETED · resort_quota: 1</em></div>
+        <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order + Txn COMPLETED</strong><em>Lượt đã trừ từ tầng 2 · ORD-20240715-0044 + TXN-20240715-0044 → COMPLETED · resort_quota: 1</em></div>
         <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện mã trong App</strong><em>"UB-RESORT-BK-X91K" + QR · HSD: 31/12/2024</em></div>
         <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🏨 Check-in tại Resort</strong><em>Lễ tân quét QR → Inventory xác nhận → đánh dấu USED → Hoàng nhận phòng</em></div>
       </div>
@@ -363,7 +363,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core xử lý đơn B2B</div>
       <div class="layer-body"><div class="g3">
         <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Xác thực đối tác</strong><em>API Key hợp lệ · partner_id=TCB-001 · Hạn mức còn: 500 voucher/ngày ✓</em></div>
-        <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo đơn (POM)</strong><em>#ORD-B2B-20240720-TCB-001 · 50 sub-orders · product_id: SHOPEE-100K · qty: 50</em></div>
+        <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo đơn (POM)</strong><em>ORD-B2B-20240720-TCB-001 + TXN-B2B-20240720-TCB-001 · 50 sub-orders · product_id: SHOPEE-100K · qty: 50</em></div>
         <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">③ Giá B2B</strong><em>Giá campaign TCB: 80.000đ/voucher (thay vì 100.000đ giá lẻ) · Tổng: 4.000.000đ</em></div>
       </div></div>
     </div>
@@ -454,11 +454,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       </div>
       <div class="layer-arr">↓<span>Gửi yêu cầu + số điện thoại xuống UrCard</span></div>
       <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, tạo đơn</div>
+        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm, tạo transaction (không tạo order)</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 200.000 → 150.000 · Đơn #ORD-20240310-7720 · PROCESSING</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Lưu thông tin nạp</strong><em>phone: 0912xxxxxx · telco: VIETTEL · amount: 50.000đ</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Đây là quà nhóm (B) — bất đồng bộ</strong><em>Nhà mạng chỉ xác nhận "đã nhận lệnh", chưa chắc đã nạp xong · timeoutPolicy=AUTO_REFUND (có thể tra soát lại qua API Viettel trước khi hoàn)</em></div>
+          <div class="box" data-detail="deduct-balance" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Trừ điểm & tạo transaction</strong><em>balance: 200.000 → 150.000 · txn_id: TXN-20240310-7720 · status: PENDING</em></div>
+          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Lưu thông tin nạp</strong><em>phone: 0912xxxxxx · telco: VIETTEL · amount: 50.000đ · <strong style="color:#dc2626">Không tạo order</strong></em></div>
+          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Bất đồng bộ — Nhà mạng chỉ xác nhận "đã nhận lệnh"</strong><em>timeoutPolicy=AUTO_REFUND · tra soát lại qua API Viettel trước khi hoàn · txn → FAILED nếu hết deadline</em></div>
         </div></div>
       </div>
       <div class="layer-arr">↓<span>Điểm đã trừ · Gọi Inventory → API nhà mạng nạp thẳng</span></div>
@@ -467,7 +467,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
         <div class="layer-body">
           <div class="info">product_id = VIETTEL-50K → outputType: <strong>TOPUP_DIRECT</strong> · Gọi API nhà mạng Viettel · Không phát mã code · <strong>Viettel trả "đã tiếp nhận lệnh nạp"</strong>, kết quả nạp thật báo sau qua webhook riêng</div>
           <div class="g2">
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Gọi Viettel Topup API</strong><em>POST api.viettel.vn/topup · phone=0912xxxxxx · amount=50000 · ref=ORD-20240310-7720</em></div>
+            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Gọi Viettel Topup API</strong><em>POST api.viettel.vn/topup · phone=0912xxxxxx · amount=50000 · ref=TXN-20240310-7720</em></div>
             <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">② Viettel tiếp nhận (chưa xác nhận xong)</strong><em>trans_id: VTL-2024031088821 · status: PROCESSING · Viettel sẽ webhook về sau</em></div>
           </div>
         </div>
@@ -483,11 +483,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer ly-orange">
         <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Order ở trạng thái chờ, chưa phải thành công cuối cùng</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">⏳ Order AWAITING_CALLBACK</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240310-7720 → AWAITING_CALLBACK · externalRef=VTL-2024031088821 · callbackDeadline: +2 phút</em></div>
+          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">⏳ Transaction AWAITING_CALLBACK</strong><em>Điểm đã trừ từ tầng 2 · TXN-20240310-7720 → AWAITING_CALLBACK · externalRef=VTL-2024031088821 · callbackDeadline: +2 phút</em></div>
           <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 App thông báo</strong><em>"Đang nạp 50.000đ Viettel vào 0912xxxxxx..."</em></div>
           <div class="box"><strong>Chưa có kết quả cuối</strong><em>Không phải COMPLETED — chờ webhook nạp tiền thật từ Viettel</em></div>
         </div>
-        <div class="note">✓ Điểm trừ ngay tại tầng 2 · Nhưng đơn CHƯA hoàn tất — cartpay hiện tại từng trả "SUCCESS" ở bước này ngay cả khi chưa biết kết quả thật; thiết kế mới tránh lặp lại lỗi đó</div>
+        <div class="note">✓ Điểm trừ ngay tại tầng 2 · Transaction CHƯA hoàn tất — chờ Viettel webhook · Không tạo order</div>
         </div>
       </div>
       <div class="layer-arr">↓<span>~vài giây sau · Viettel gọi webhook riêng về UrCard</span></div>
@@ -495,10 +495,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
         <div class="layer-head" style="background:#e0f2fe;color:#0369a1;border-bottom:1px solid #bae6fd"><div class="layer-num" style="background:#0369a1;color:#fff">6</div>Webhook Callback — Viettel báo kết quả nạp tiền</div>
         <div class="layer-body"><div class="g3">
           <div class="box" style="border-color:#7dd3fc;background:#f0f9ff"><strong style="color:#0369a1">🔗 POST /urcard/webhooks/topup-status</strong><em>trans_id=VTL-2024031088821 · status=SUCCESS · "So du hien tai: 52,350d"</em></div>
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ UrCard tra externalRef → cập nhật Order</strong><em>ORD-20240310-7720: AWAITING_CALLBACK → COMPLETED</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu status=FAILED thay vì SUCCESS</strong><em>UrCard hoàn điểm: balance + 50.000 · Order → FAILED</em></div>
+          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ UrCard tra externalRef → cập nhật Transaction</strong><em>TXN-20240310-7720: AWAITING_CALLBACK → COMPLETED · 📲 SMS từ Viettel xác nhận</em></div>
+          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu status=FAILED</strong><em>UrCard hoàn điểm: balance + 50.000 · TXN → FAILED · Thông báo lỗi</em></div>
         </div>
-        <div class="good">✓ Nếu quá callbackDeadline (2 phút) mà Viettel không gọi webhook → timeoutPolicy=AUTO_REFUND → cronjob tự tra soát lại qua API Viettel, nếu vẫn không xác nhận được thì tự động hoàn điểm + đánh FAILED</div>
+        <div class="good">✓ Nếu quá callbackDeadline (2 phút) mà Viettel không gọi → timeoutPolicy=AUTO_REFUND → cronjob tra soát lại, không xác nhận được thì tự hoàn điểm + FAILED</div>
         </div>
       </div>
     </div></div>
@@ -515,11 +515,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       </div>
       <div class="layer-arr">↓<span>Gửi yêu cầu + thông tin chuyến bay xuống UrCard</span></div>
       <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ lượt trước, gọi Inventory đặt chỗ</div>
+        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ lượt trước, tạo order + transaction</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="deduct-quota" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ lượt</strong><em>lounge_quota: 2 → 1 · Đơn #ORD-20240615-0081 · PROCESSING</em></div>
+          <div class="box" data-detail="deduct-quota" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Trừ lượt & tạo order + txn</strong><em>lounge_quota: 2 → 1 · ORD-20240615-0081 + TXN-20240615-0081 · PROCESSING</em></div>
           <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Gửi thông tin đặt chỗ</strong><em>lounge_id: HAN-PLAZA-T2 · date: 2024-06-15 · time: 08:00 · pax: 1</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu API booking fail</strong><em>Hoàn lượt: lounge_quota + 1 · order → FAILED · Thông báo lỗi</em></div>
+          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu API booking fail</strong><em>Hoàn lượt: lounge_quota + 1 · order + txn → FAILED · Thông báo lỗi</em></div>
         </div></div>
       </div>
       <div class="layer-arr">↓<span>Lượt đã trừ · Inventory gọi DragonPass API đặt chỗ realtime</span></div>
@@ -545,7 +545,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer ly-orange">
         <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — An nhận QR, vào phòng chờ</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Lượt đã trừ từ tầng 2 · ORD-20240615-0081 → COMPLETED · lounge_quota: 1</em></div>
+          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order + Txn COMPLETED</strong><em>Lượt đã trừ từ tầng 2 · ORD-20240615-0081 + TXN-20240615-0081 → COMPLETED · lounge_quota: 1</em></div>
           <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện QR trong App</strong><em>QR Code · "Plaza Premium T2 · 15/06/2024 · 08:00-12:00" · booking_ref: DP-2024061500081</em></div>
           <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🛋 Vào phòng chờ</strong><em>An quét QR tại cửa → Nhân viên xác nhận → An vào phòng chờ thụ hưởng</em></div>
         </div>
@@ -566,9 +566,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       </div>
       <div class="layer-arr">↓<span>Gửi yêu cầu xuống UrCard</span></div>
       <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, tạo đơn</div>
+        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm, tạo order + transaction</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 90.000 → 30.000 · Đơn #ORD-20240520-3301 · PROCESSING</em></div>
+          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Trừ điểm & tạo order + txn</strong><em>balance: 90.000 → 30.000 · ORD-20240520-3301 + TXN-20240520-3301 · PROCESSING</em></div>
           <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Gọi Inventory sinh mã</strong><em>product_id: UBVOUCHER-200K · WhoExport=1 (UB tự sinh) · qty=1</em></div>
           <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu sinh mã fail</strong><em>Hoàn điểm: balance + 60.000 · order → FAILED</em></div>
         </div></div>
@@ -596,7 +596,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer ly-orange">
         <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Linh nhận mã, dùng tại UrBox</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240520-3301 → COMPLETED · balance: 30.000</em></div>
+          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order + Txn COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240520-3301 + TXN-20240520-3301 → COMPLETED · balance: 30.000</em></div>
           <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện mã trong App</strong><em>UBV-K7Q2-M9R4 · QR Code · HSD: 30/06/2024 · Giá trị: 200.000đ</em></div>
           <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🛍 Dùng tại UrBox</strong><em>Linh trình mã khi checkout → cashier quét QR → giảm 200k</em></div>
         </div>
@@ -617,9 +617,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       </div>
       <div class="layer-arr">↓<span>Gửi yêu cầu xuống UrCard</span></div>
       <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, gọi Inventory lấy mã</div>
+        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm, tạo order + transaction</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 80.000 → 35.000 · Đơn #ORD-20240801-9911 · PROCESSING</em></div>
+          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Trừ điểm & tạo order + txn</strong><em>balance: 80.000 → 35.000 · ORD-20240801-9911 + TXN-20240801-9911 · PROCESSING</em></div>
           <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Gọi Inventory lấy mã</strong><em>product_id: GARENA-100K · WhoExport=0 (stock sẵn) · qty=1</em></div>
           <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu hết mã / fail</strong><em>Hoàn điểm: balance + 45.000 · order → FAILED · Thông báo hết hàng</em></div>
         </div></div>
@@ -647,7 +647,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer ly-orange">
         <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Khoa nhận mã, nạp vào game</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240801-9911 → COMPLETED · balance: 35.000</em></div>
+          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order + Txn COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240801-9911 + TXN-20240801-9911 → COMPLETED · balance: 35.000</em></div>
           <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện mã trong App</strong><em>Serial: GRN-2024-K8P2 · PIN: M5Q1xxxx · HSD: 31/12/2024</em></div>
           <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🎮 Nạp vào Garena</strong><em>Vào Garena → Nạp thẻ → Nhập serial + PIN → Tài khoản nhận 100k Garena Shell</em></div>
         </div>
@@ -672,9 +672,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       </div>
       <div class="layer-arr">↓<span>Gửi yêu cầu + địa chỉ giao hàng xuống UrCard</span></div>
       <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, tạo đơn ship</div>
+        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm, tạo order + transaction</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 120.000 → 40.000 · Đơn #ORD-20240125-5501 · PROCESSING</em></div>
+          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Trừ điểm & tạo order + txn</strong><em>balance: 120.000 → 40.000 · ORD-20240125-5501 + TXN-20240125-5501 · PROCESSING</em></div>
           <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Lưu địa chỉ giao hàng</strong><em>shipping_address: "12 Lê Lợi, Q.1, HCM" · recipient: Mai · phone: 090xxxxxxx</em></div>
           <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Đây là quà nhóm (B) — bất đồng bộ</strong><em>Chưa biết kết quả ship thật ngay · timeoutPolicy=MANUAL_HOLD (không tự hoàn khi hết hạn vì hàng có thể đang trên đường)</em></div>
         </div></div>
@@ -701,7 +701,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293
       <div class="layer ly-orange">
         <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Order ở trạng thái chờ, chưa phải thành công cuối cùng</div>
         <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">⏳ Order AWAITING_CALLBACK</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240125-5501 → AWAITING_CALLBACK · externalRef=GHTK-2024-88201 · callbackDeadline: +5 ngày</em></div>
+          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">⏳ Order + Txn AWAITING_CALLBACK</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240125-5501 + TXN-20240125-5501 → AWAITING_CALLBACK · externalRef=GHTK-2024-88201 · callbackDeadline: +5 ngày</em></div>
           <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Push notification</strong><em>"Đơn hàng đang giao · Mã vận đơn GHTK-2024-88201 · ETA: 27/01/2024"</em></div>
           <div class="box"><strong>Chưa có kết quả cuối</strong><em>Không phải COMPLETED — chờ webhook giao hàng thật từ GHTK</em></div>
         </div>
