@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luồng lấy mã & bù kho — overview 1 luồng duy nhất</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293b;min-height:100vh}
+
+.hdr{background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 32px}
+.hdr h1{font-size:14px;font-weight:800;color:#0f172a}
+.hdr p{font-size:10px;color:#94a3b8;margin-top:2px}
+
+.wrap{padding:24px 32px 80px;max-width:960px;margin:0 auto}
+
+.sec-title{font-size:13px;font-weight:800;color:#0f172a;margin:26px 0 4px}
+.sec-sub{font-size:11px;color:#64748b;line-height:1.7;margin-bottom:16px}
+
+.info{border:1.5px solid #bfdbfe;background:#eff6ff;border-radius:8px;padding:10px 14px;font-size:11px;color:#1e40af;line-height:1.8;margin:0 0 12px}
+.note{border-left:3px solid #f59e0b;background:#fffbeb;border-radius:0 8px 8px 0;padding:9px 13px;font-size:10.5px;color:#78350f;line-height:1.75;margin:10px 0}
+.good{border:1.5px solid #bbf7d0;background:#f0fdf4;border-radius:8px;padding:9px 13px;font-size:10.5px;color:#15803d;line-height:1.75;margin:10px 0}
+.risk{border:1.5px solid #fca5a5;background:#fff1f2;border-radius:8px;padding:9px 13px;font-size:10.5px;color:#9f1239;line-height:1.75;margin:10px 0}
+
+.diagram{background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:20px;overflow-x:auto;margin-bottom:8px}
+.diagram .mermaid{min-width:640px}
+
+.state{border:1.5px solid #6ee7b7;background:#ecfdf5;border-radius:8px;padding:10px 13px;font-size:10.5px;margin:8px 0;color:#065f46;line-height:1.85}
+.state .lbl{font-weight:800;text-transform:uppercase;font-size:9px;letter-spacing:.05em;margin-bottom:4px;color:#047857}
+.state .ar{color:#059669;font-weight:800}
+.state code{background:#d1fae5;padding:1px 6px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;font-size:10px}
+
+table{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin:8px 0}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #eef2f6;vertical-align:top;line-height:1.6}
+th{background:#f1f5f9;font-weight:800;color:#334155;font-size:10px;text-transform:uppercase;letter-spacing:.03em}
+td code{background:#f1f5f9;padding:1px 6px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;font-size:10px}
+.pill{display:inline-block;font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+.pill-yes{background:#dcfce7;color:#15803d}
+.pill-no{background:#fee2e2;color:#b91c1c}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:720px){.grid2{grid-template-columns:1fr}}
+.card{background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px}
+.card h4{font-size:11px;font-weight:800;color:#0f172a;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>Luồng lấy mã &amp; bù kho — overview 1 luồng duy nhất</h1>
+  <p>Chỉ mô tả đúng 1 luồng: cấp mã → cập nhật tồn kho → rẽ nhánh bù kho theo whoexport &amp; product_type · không đi vào cache/codex/mongo</p>
+</div>
+
+<div class="wrap">
+
+  <div class="sec-title">2 con số trên sản phẩm quyết định có bù kho hay không</div>
+  <div class="info">
+    Mỗi sản phẩm giữ 2 con số: <strong><code style="background:#dbeafe;padding:1px 6px;border-radius:4px">code_stock</code> = tồn kho hiện tại</strong> (còn bao nhiêu mã bán được) và <strong><code style="background:#dbeafe;padding:1px 6px;border-radius:4px">code_min</code> = ngưỡng tối thiểu</strong> (chạm mức này thì cần bù thêm). Sau <strong>mỗi lượt cấp mã</strong>, hệ thống hạ <code style="background:#dbeafe;padding:1px 6px;border-radius:4px">code_stock</code> xuống rồi kiểm tra: nếu <strong>code_stock ≤ code_min</strong> (và code_min &gt; 0) thì mới xét bù kho. Bù được hay không thì <strong>phụ thuộc loại sản phẩm</strong> — đó là toàn bộ nội dung sơ đồ dưới.
+  </div>
+
+  <div class="sec-title">Sơ đồ luồng</div>
+  <div class="sec-sub">Bắt đầu từ lúc có yêu cầu lấy N mã (sau khi khách đã thanh toán). Nhánh <span style="color:#15803d;font-weight:800">xanh = có bù tự động</span>, <span style="color:#b91c1c;font-weight:800">đỏ = KHÔNG tự bù</span>, phải chờ can thiệp tay.</div>
+
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TD
+    A["Yêu cầu lấy N mã của 1 sản phẩm<br/>State product: code_stock, code_min"] --> B["Tìm &amp; cấp N mã cho khách"]
+    B --> C{"Cấp đủ N mã?"}
+    C -->|Không đủ| E1["Báo lỗi: hết mã / không đủ mã<br/>code_stock không đổi"]
+    C -->|Đủ| D["Đã cấp N mã cho khách<br/>code_stock = code_stock - N"]
+    D --> F{"code_stock ≤ code_min<br/>và code_min > 0 ?"}
+    F -->|Không, còn đủ| G["Dừng. Không cần bù kho"]
+    F -->|Có, tồn thấp| H{"whoexport = ?"}
+
+    H -->|"0 - Nhập tay bằng Excel"| I1["KHÔNG tự bù<br/>Hết là hết<br/>Chờ vận hành nạp file Excel"]
+    H -->|"1 - Tự sinh mã"| I2["BÙ TỰ ĐỘNG<br/>Sinh thêm mã từ kho mã thô<br/>code_stock tăng lại đến code_min"]
+    H -->|"2 - Lấy từ đối tác qua API"| J{"product_type = ?"}
+
+    J -->|"1 - Realtime"| I3["BÙ TỰ ĐỘNG<br/>Tự gọi đối tác xin thêm mã<br/>ghi vào kho, code_stock tăng lại"]
+    J -->|"2 - Async"| I4["KHÔNG tự bù<br/>Phải đặt đơn PO<br/>mã về sau qua webhook"]
+    J -->|"3 - PO order"| I5["KHÔNG tự bù<br/>Phải đặt đơn PO"]
+
+    classDef auto fill:#dcfce7,stroke:#15803d,color:#14532d,font-weight:bold;
+    classDef noauto fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,font-weight:bold;
+    classDef neutral fill:#f1f5f9,stroke:#64748b,color:#334155;
+    classDef start fill:#ede9fe,stroke:#6d28d9,color:#4c1d95;
+    class A start;
+    class I2,I3 auto;
+    class I1,I4,I5 noauto;
+    class G neutral;
+    class E1 noauto;
+    </pre>
+  </div>
+  <div class="note">⚠️ Điều kiện bù luôn là <strong>code_stock ≤ code_min</strong> — còn dư trên ngưỡng thì dù loại nào cũng không làm gì. Bù kho <strong>chạy nền sau khi đã trả mã cho khách</strong>, không bắt khách chờ.</div>
+
+  <div class="sec-title">Nhánh nào tự bù, nhánh nào không</div>
+  <table>
+    <thead>
+      <tr><th>whoexport</th><th>product_type</th><th>Bù kho tự động?</th><th>Cách bù</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>0</code> — Nhập tay (Excel)</td>
+        <td>—</td>
+        <td><span class="pill pill-no">Không</span></td>
+        <td>Hết là hết. Vận hành nạp thêm file Excel mới.</td>
+      </tr>
+      <tr>
+        <td><code>1</code> — Tự sinh mã</td>
+        <td>—</td>
+        <td><span class="pill pill-yes">Có</span></td>
+        <td>Tự sinh mã mới từ kho mã thô cho tới khi đủ ngưỡng.</td>
+      </tr>
+      <tr>
+        <td><code>2</code> — Lấy từ đối tác (API)</td>
+        <td><code>1</code> — Realtime</td>
+        <td><span class="pill pill-yes">Có</span></td>
+        <td>Tự phát tín hiệu gọi đối tác xin thêm mã → ghi vào kho → cộng lại code_stock.</td>
+      </tr>
+      <tr>
+        <td><code>2</code> — Lấy từ đối tác (API)</td>
+        <td><code>2</code> — Async</td>
+        <td><span class="pill pill-no">Không</span></td>
+        <td>Cơ chế tự động bỏ qua. Phải đặt đơn PO từ ngoài → mã về sau qua webhook.</td>
+      </tr>
+      <tr>
+        <td><code>2</code> — Lấy từ đối tác (API)</td>
+        <td><code>3</code> — PO order</td>
+        <td><span class="pill pill-no">Không</span></td>
+        <td>Cơ chế tự động bỏ qua. Phải đặt đơn PO từ ngoài.</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="risk">⚠️ Chỉ đúng <strong>2 nhánh tự bù</strong>: <code>whoexport=1</code> (tự sinh) và <code>whoexport=2 + type=1</code> (đối tác Realtime). Cả 3 nhánh còn lại — nhập tay, đối tác Async, đối tác PO — <strong>đều không có cơ chế tự bù trong luồng bán</strong>, muốn có mã lại đều phải có tác động từ ngoài (nạp Excel hoặc đặt đơn PO).</div>
+
+  <div class="sec-title">State ví dụ — product(code_stock, code_min) đổi thế nào</div>
+  <div class="grid2">
+    <div class="card">
+      <h4>① Nhánh tự bù — vd tự sinh mã, code_min = 100</h4>
+      <div class="state">
+        <div class="lbl">Trước lượt bán</div>
+        <code>code_stock = 105</code> · <code>code_min = 100</code>
+      </div>
+      <div class="state">
+        <div class="lbl">Cấp 10 mã cho khách</div>
+        <code>code_stock = 95</code> <span class="ar">→</span> 95 ≤ 100 → xét bù
+      </div>
+      <div class="state">
+        <div class="lbl">Bù tự động (chạy nền)</div>
+        Sinh thêm mã <span class="ar">→</span> <code>code_stock ≈ 100</code> trở lại
+      </div>
+    </div>
+    <div class="card">
+      <h4>② Nhánh không tự bù — vd nhập tay, code_min = 100</h4>
+      <div class="state">
+        <div class="lbl">Trước lượt bán</div>
+        <code>code_stock = 105</code> · <code>code_min = 100</code>
+      </div>
+      <div class="state">
+        <div class="lbl">Cấp 10 mã cho khách</div>
+        <code>code_stock = 95</code> <span class="ar">→</span> 95 ≤ 100 → xét bù
+      </div>
+      <div class="state" style="border-color:#fca5a5;background:#fff1f2;color:#9f1239">
+        <div class="lbl" style="color:#be123c">Không có nhánh bù</div>
+        <code>code_stock = 95</code> và tiếp tục tụt dần theo mỗi lượt bán, cho tới 0 → hết mã. Chỉ tăng lại khi vận hành nạp Excel mới.
+      </div>
+    </div>
+  </div>
+  <div class="note">⚠️ Có 1 ngoại lệ nhỏ về con số: với đối tác Realtime, nếu kho chung đã cạn hẳn và mã được xin thẳng từ đối tác trả ngay cho khách, thì lượt đó <strong>không hạ code_stock</strong> (mã chưa từng nằm trong kho để mà trừ). Không ảnh hưởng bức tranh tổng quan trên — chỉ là chi tiết của trường hợp kho đã về 0.</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({ startOnLoad: true, theme: 'default', flowchart: { htmlLabels: true, curve: 'basis' } });
+  }
+</script>
+</body>
+</html>

@@ -2,1379 +2,756 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ví dụ thực tế — Hệ thống Quà tặng</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>New Gift System — Architecture</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293b;min-height:100vh}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;color:#1e293b;font-size:12px}
 
-.hdr{background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.hdr h1{font-size:14px;font-weight:800;color:#0f172a}
+.hdr{background:#0f172a;color:#fff;padding:14px 32px;display:flex;align-items:center;gap:16px}
+.hdr h1{font-size:14px;font-weight:800}
 .hdr p{font-size:10px;color:#94a3b8;margin-top:2px}
 
-.wrap{padding:24px 32px 80px;max-width:960px}
+.wrap{padding:20px 28px 80px;max-width:1000px}
 
-.sec-title{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:4px}
-.sec-sub{font-size:11px;color:#64748b;line-height:1.7;margin-bottom:20px}
-
-/* scenario buttons */
-.scn-btns{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
-.scn-btn{padding:8px 14px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;cursor:pointer;transition:all .15s;line-height:1.4}
-.scn-btn:hover{border-color:#1d4ed8;color:#1d4ed8}
-.scn-btn.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
-
-.scn{display:none}
-.scn.on{display:block}
+/* view tabs */
+.vtabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #e2e8f0}
+.vtab{padding:9px 18px;font-size:11px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:#64748b;background:none;border-top:none;border-left:none;border-right:none}
+.vtab.on{color:#1d4ed8;border-bottom:2px solid #1d4ed8}
+.view{display:none}.view.on{display:block}
 
 /* layers */
-.arch{display:grid;grid-template-columns:1fr;gap:10px}
-.layer{border-radius:12px;overflow:hidden;border:1.5px solid}
-.layer-head{padding:11px 16px;font-size:11.5px;font-weight:800;display:flex;align-items:center;gap:10px}
-.layer-body{padding:14px 16px;background:#fff}
-.layer-num{width:22px;height:22px;border-radius:50%;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.arch{display:flex;flex-direction:column;gap:0}
+.layer-wrap{display:flex;flex-direction:column;gap:0}
+.arr{text-align:center;font-size:18px;color:#cbd5e1;line-height:1;padding:3px 0}
+.arr span{display:block;font-size:9px;color:#94a3b8;line-height:1.4}
 
-.ly-purple{border-color:#c4b5fd} .ly-purple .layer-head{background:#ede9fe;color:#6d28d9;border-bottom:1px solid #ddd6fe} .ly-purple .layer-num{background:#6d28d9;color:#fff}
-.ly-blue  {border-color:#93c5fd} .ly-blue   .layer-head{background:#dbeafe;color:#1d4ed8;border-bottom:1px solid #bfdbfe} .ly-blue   .layer-num{background:#1d4ed8;color:#fff}
-.ly-green {border-color:#86efac} .ly-green  .layer-head{background:#dcfce7;color:#15803d;border-bottom:1px solid #bbf7d0} .ly-green  .layer-num{background:#15803d;color:#fff}
-.ly-teal  {border-color:#5eead4} .ly-teal   .layer-head{background:#ccfbf1;color:#0f766e;border-bottom:1px solid #99f6e4} .ly-teal   .layer-num{background:#0f766e;color:#fff}
-.ly-orange{border-color:#fdba74} .ly-orange .layer-head{background:#ffedd5;color:#c2410c;border-bottom:1px solid #fed7aa} .ly-orange .layer-num{background:#c2410c;color:#fff}
-
-.layer-arr{text-align:center;font-size:16px;color:#cbd5e1;margin:0;line-height:1.4}
-.layer-arr span{font-size:9.5px;color:#94a3b8;display:block}
-
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-
-.box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:10.5px;line-height:1.5;color:#374151}
-.box strong{display:block;font-size:11px;font-weight:700;margin-bottom:3px}
-.box em{font-style:normal;font-size:9.5px;color:#64748b}
-
-.note{border-left:3px solid #f59e0b;background:#fffbeb;border-radius:0 8px 8px 0;padding:8px 12px;font-size:11px;color:#78350f;line-height:1.7;margin:10px 0}
-.info{border:1.5px solid #bfdbfe;background:#eff6ff;border-radius:8px;padding:8px 12px;font-size:11px;color:#1e40af;line-height:1.7;margin:0 0 10px}
-.good{border:1.5px solid #bbf7d0;background:#f0fdf4;border-radius:8px;padding:8px 12px;font-size:11px;color:#15803d;line-height:1.7;margin:10px 0}
-
-/* ── clickable box ── */
-.box[data-detail]{cursor:pointer;position:relative;transition:border-color .15s, box-shadow .15s, transform .1s}
-.box[data-detail]:hover{border-color:#1d4ed8;box-shadow:0 2px 8px rgba(29,78,216,.12);transform:translateY(-1px)}
-.box[data-detail]::after{content:'↗';position:absolute;top:6px;right:8px;font-size:9px;color:#94a3b8;transition:color .15s}
-.box[data-detail]:hover::after{color:#1d4ed8}
-
-/* ── layer collapse ── */
-.layer-head{cursor:pointer;user-select:none}
-.layer-head::after{content:'▾';margin-left:auto;font-size:11px;opacity:.5;transition:transform .2s}
+.layer{border-radius:10px;overflow:hidden;border:1.5px solid}
+.layer-head{padding:9px 14px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.layer-head::after{content:'▾';margin-left:auto;font-size:10px;opacity:.4;transition:transform .2s}
 .layer-head.collapsed::after{transform:rotate(-90deg)}
-.layer-body{transition:all .2s}
+.layer-body{padding:12px 14px;background:#fff;display:flex;flex-direction:column;gap:8px}
 .layer-body.collapsed{display:none}
+.lnum{width:20px;height:20px;border-radius:50%;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
-/* ── modal ── */
-.modal-bg{
-  display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);
-  z-index:200;align-items:center;justify-content:center;padding:24px;
-}
-.modal-bg.on{display:flex}
-.modal{
-  background:#fff;border-radius:14px;max-width:560px;width:100%;
-  box-shadow:0 20px 60px rgba(15,23,42,.25);animation:modalIn .2s ease;
-  overflow:hidden;max-height:90vh;display:flex;flex-direction:column;
-}
-@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(8px)}to{opacity:1;transform:none}}
-.modal-head{
-  padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid #f1f5f9;
-}
-.modal-head h3{font-size:12.5px;font-weight:800;color:#0f172a}
-.modal-close{
-  width:26px;height:26px;border-radius:6px;border:none;background:#f1f5f9;
-  cursor:pointer;font-size:14px;color:#64748b;display:flex;align-items:center;justify-content:center;
-}
-.modal-close:hover{background:#e2e8f0}
-.modal-body{padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
-.modal-section{}
-.modal-section h4{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
-.modal-section pre{
-  background:#0f172a;color:#e2e8f0;font-size:10.5px;line-height:1.7;
-  border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'JetBrains Mono','Fira Code',monospace;
-  white-space:pre;
-}
-.modal-section .tag{
-  display:inline-block;padding:2px 8px;border-radius:4px;font-size:9.5px;font-weight:700;margin-right:4px;margin-bottom:4px;
-}
-.tag-blue{background:#dbeafe;color:#1d4ed8}
-.tag-green{background:#dcfce7;color:#15803d}
+/* layer colors */
+.ly-slate  {border-color:#cbd5e1}.ly-slate   .layer-head{background:#f1f5f9;color:#475569;border-bottom:1px solid #e2e8f0}.ly-slate   .lnum{background:#475569;color:#fff}
+.ly-blue   {border-color:#93c5fd}.ly-blue    .layer-head{background:#dbeafe;color:#1d4ed8;border-bottom:1px solid #bfdbfe}.ly-blue    .lnum{background:#1d4ed8;color:#fff}
+.ly-violet {border-color:#c4b5fd}.ly-violet  .layer-head{background:#ede9fe;color:#6d28d9;border-bottom:1px solid #ddd6fe}.ly-violet  .lnum{background:#6d28d9;color:#fff}
+.ly-purple {border-color:#d8b4fe}.ly-purple  .layer-head{background:#f5f3ff;color:#7c3aed;border-bottom:1px solid #e9d5ff}.ly-purple  .lnum{background:#7c3aed;color:#fff}
+.ly-green  {border-color:#86efac}.ly-green   .layer-head{background:#dcfce7;color:#15803d;border-bottom:1px solid #bbf7d0}.ly-green   .lnum{background:#15803d;color:#fff}
+.ly-teal   {border-color:#5eead4}.ly-teal    .layer-head{background:#ccfbf1;color:#0f766e;border-bottom:1px solid #99f6e4}.ly-teal    .lnum{background:#0f766e;color:#fff}
+.ly-orange {border-color:#fdba74}.ly-orange  .layer-head{background:#ffedd5;color:#c2410c;border-bottom:1px solid #fed7aa}.ly-orange  .lnum{background:#c2410c;color:#fff}
+.ly-gray   {border-color:#d1d5db}.ly-gray    .layer-head{background:#f9fafb;color:#374151;border-bottom:1px solid #e5e7eb}.ly-gray    .lnum{background:#374151;color:#fff}
+
+/* boxes */
+.boxes{display:flex;gap:8px;flex-wrap:wrap}
+.box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:8px 11px;font-size:10.5px;line-height:1.55;flex:1;min-width:160px}
+.box strong{display:block;font-size:10.5px;font-weight:700;margin-bottom:2px}
+.box em{font-style:normal;font-size:9.5px;color:#64748b;line-height:1.5}
+.box.hi-blue  {border-color:#93c5fd;background:#eff6ff}
+.box.hi-green {border-color:#86efac;background:#f0fdf4}
+.box.hi-violet{border-color:#c4b5fd;background:#f5f3ff}
+.box.hi-teal  {border-color:#5eead4;background:#f0fdfa}
+.box.hi-orange{border-color:#fdba74;background:#fff7ed}
+.box.hi-red   {border-color:#fca5a5;background:#fef2f2}
+.box.hi-gray  {border-color:#e2e8f0;background:#f8fafc;color:#94a3b8}
+.box.wide{min-width:100%;flex:none}
+
+.tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:9px;font-weight:700;margin:1px 2px 1px 0}
+.tag-blue  {background:#dbeafe;color:#1d4ed8}
+.tag-green {background:#dcfce7;color:#15803d}
+.tag-purple{background:#ede9fe;color:#6d28d9}
+.tag-teal  {background:#ccfbf1;color:#0f766e}
 .tag-orange{background:#ffedd5;color:#c2410c}
-.tag-red{background:#fee2e2;color:#dc2626}
-.tag-gray{background:#f1f5f9;color:#475569}
+.tag-red   {background:#fee2e2;color:#dc2626}
+.tag-gray  {background:#f1f5f9;color:#475569}
+
+.note{border-left:3px solid #f59e0b;background:#fffbeb;border-radius:0 6px 6px 0;padding:7px 11px;font-size:10.5px;color:#78350f;line-height:1.7}
+.info{border:1.5px solid #bfdbfe;background:#eff6ff;border-radius:7px;padding:7px 11px;font-size:10.5px;color:#1e40af;line-height:1.7}
+.good{border:1.5px solid #bbf7d0;background:#f0fdf4;border-radius:7px;padding:7px 11px;font-size:10.5px;color:#15803d;line-height:1.7}
+
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.col{flex:1;min-width:120px}
+
+/* decision tree */
+.dtree{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px}
+.dtree-title{font-size:10.5px;font-weight:700;margin-bottom:8px;color:#374151}
+.dtree-row{display:flex;align-items:flex-start;gap:8px;margin:4px 0}
+.dtree-q{font-size:10px;color:#64748b;width:180px;flex-shrink:0}
+.dtree-a{font-size:10px;color:#1e293b;font-weight:600}
+.dtree-arr{color:#94a3b8;font-size:10px}
+
+/* step bar */
+#stepBar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e2e8f0;padding:10px 28px;display:flex;align-items:center;gap:12px;z-index:100}
+.dots{display:flex;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;background:#e2e8f0;cursor:pointer;transition:background .2s}
+.dot.on{background:#1d4ed8}
+#stepLabel{font-size:11px;color:#64748b;flex:1}
+.btn{padding:7px 16px;font-size:11px;font-weight:700;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#374151;cursor:pointer}
+.btn.primary{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+.btn:hover{opacity:.85}
+
+/* highlight for step animation */
+.layer{transition:opacity .25s,box-shadow .25s,transform .2s}
+.layer.dim{opacity:.25}
+.layer.visited{opacity:.5}
+.layer.active{opacity:1;box-shadow:0 0 0 3px #1d4ed8,0 4px 20px rgba(29,78,216,.2);transform:translateY(-2px)}
+.step-badge{margin-left:auto;background:#1d4ed8;color:#fff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;letter-spacing:.3px}
+
+/* packet animation */
+.pkt{display:inline-block;background:#1d4ed8;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:8px;animation:pktIn .3s ease;vertical-align:middle}
+@keyframes pktIn{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+
+/* modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:200;align-items:center;justify-content:center;padding:24px}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:12px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(15,23,42,.25);overflow:hidden;max-height:88vh;display:flex;flex-direction:column}
+.modal-head{padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{font-size:12px;font-weight:800}
+.modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:#64748b;line-height:1;padding:0 4px}
+.modal-body{padding:16px 18px;overflow-y:auto;font-size:11px;line-height:1.7;color:#374151}
+.modal-section{margin-bottom:12px}
+.modal-section h4{font-size:10.5px;font-weight:700;margin-bottom:5px;color:#0f172a}
+.modal-pre{background:#0f172a;color:#e2e8f0;border-radius:8px;padding:10px 13px;font-family:monospace;font-size:9.5px;line-height:1.6;overflow-x:auto;white-space:pre}
 </style>
 </head>
 <body>
 
 <div class="hdr">
   <div>
-    <h1>Ví dụ thực tế — Data thật chạy qua 5 tầng kiến trúc</h1>
-    <p>Mỗi tình huống theo đúng thứ tự vòng đời thẻ · Thẻ unique theo (campaign, siteUserId)</p>
+    <h1>New Gift System — Internal Architecture</h1>
+    <p>9 tầng kiến trúc · Click vào box để xem chi tiết · Animate step-by-step</p>
   </div>
 </div>
 
 <div class="wrap">
-
-  <!-- view tabs -->
-  <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid #e2e8f0;padding-bottom:0">
-    <button class="vtab on" id="vtab0" onclick="switchView(0)">📋 Vòng đời thẻ</button>
-    <button class="vtab"    id="vtab1" onclick="switchView(1)">🎁 Theo loại quà</button>
-  </div>
-
-  <!-- VIEW 0: vòng đời -->
-  <div class="view" id="view0">
-  <div class="scn-btns">
-    <button class="scn-btn on" onclick="show(0,this)">① Chưa có thẻ → Tạo thẻ + cộng điểm</button>
-    <button class="scn-btn"   onclick="show(1,this)">② SHB cộng lượt đặc quyền</button>
-    <button class="scn-btn"   onclick="show(2,this)">③ Hoàng đổi điểm lấy Voucher Grab</button>
-    <button class="scn-btn"   onclick="show(3,this)">④ Hoàng dùng lượt resort</button>
-    <button class="scn-btn"   onclick="show(4,this)">⑤ Đối tác B2B phát quà nhân viên</button>
-  </div>
-
-  <!-- ① CHƯA CÓ THẺ -->
-  <div class="scn on" id="s0"><div class="arch">
-    <div class="layer ly-purple">
-      <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Hoàng chi tiêu lần đầu trên SHB</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>Hoàng · campaign: SHB-PLATINUM-2024 · siteUserId: SHB-HN-00281 · Chưa có thẻ UrCard nào</em></div>
-        <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">💳 Sự kiện trigger</strong><em>Hoàng chi tiêu 5.000.000đ bằng thẻ SHB Platinum → SHB ghi nhận đủ điều kiện nhận 50.000 điểm</em></div>
-        <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Trạng thái ban đầu</strong><em>Chưa có thẻ với cặp (campaign=SHB-PLATINUM-2024, siteUserId=SHB-HN-00281) · Chưa có điểm · Chưa có lượt</em></div>
-      </div></div>
-    </div>
-    <div class="layer-arr">↓<span>SHB gửi yêu cầu cộng 50.000 điểm · campaign=SHB-PLATINUM-2024 · siteUserId=SHB-HN-00281</span></div>
-    <div class="layer ly-blue">
-      <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core nhận yêu cầu &amp; tạo thẻ + cộng điểm</div>
-      <div class="layer-body">
-        <div class="g3" style="margin-bottom:10px">
-          <div class="box" data-detail="create-card" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">① Tìm thẻ — Không thấy</strong><em>Tra DB theo (campaign=SHB-PLATINUM-2024, siteUserId=SHB-HN-00281) · Kết quả: 0 thẻ → tạo thẻ mới</em></div>
-          <div class="box" data-detail="create-card" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo thẻ mới tự động</strong><em>card_id: CARD-SHB-00281 · campaign: SHB-PLATINUM-2024 · siteUserId: SHB-HN-00281 · ACTIVE · 2024-01-15</em></div>
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">③ Tạo đơn + PENDING</strong><em>Đơn #ORD-20240115-0001 · product_id: POINT-TOPUP · amount: 50.000</em></div>
-        </div>
-        <div class="info" style="margin:0 0 8px">outputType = <strong>TOPUP_BALANCE</strong> → UrCard Core tự cộng điểm thẳng vào thẻ, <strong>không đẩy xuống Inventory</strong></div>
-        <div class="g3">
-          <div class="box" data-detail="topup-balance" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Cộng điểm vào thẻ</strong><em>card_id=CARD-SHB-00281 · balance: 0 → 50.000 điểm</em></div>
-          <div class="box" data-detail="topup-balance" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">📋 Order COMPLETED</strong><em>ORD-20240115-0001 · action=TOPUP_BALANCE · amount=50000 · COMPLETED</em></div>
-          <div class="box"><strong>Không qua kho mã</strong><em>Không Redis · Không codex · Không WhoExport</em></div>
-        </div>
-        <div class="note" style="margin-top:10px">Thẻ unique theo cặp <strong>(campaign, siteUserId)</strong>. Tạo thẻ + tạo đơn + cộng điểm trong cùng transaction — fail thì rollback cả ba.</div>
-      </div>
-    </div>
-    <div class="layer-arr">↓<span>Xử lý hoàn tất tại tầng bán hàng · Không xuống Inventory · Trả kết quả lên</span></div>
-    <div class="layer ly-green">
-      <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — Bỏ qua (TOPUP_BALANCE xử lý tại tầng bán hàng)</div>
-      <div class="layer-body">
-        <div class="box" style="border-color:#e2e8f0;background:#f8fafc;color:#94a3b8"><strong style="color:#94a3b8">⊘ Không đi qua tầng này</strong><em>TOPUP_BALANCE không cần phân loại kho · UrCard Core đã xử lý xong · Inventory chỉ được gọi khi cần lấy mã/voucher từ kho</em></div>
-      </div>
-    </div>
-    <div class="layer-arr">↓</div>
-    <div class="layer ly-teal">
-      <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Bỏ qua (không có mã để lấy)</div>
-      <div class="layer-body">
-        <div class="box" style="border-color:#e2e8f0;background:#f8fafc;color:#94a3b8"><strong style="color:#94a3b8">⊘ Không đi qua tầng này</strong><em>Không có codex record · Không pop Redis · Điểm đã được cộng trực tiếp vào card DB</em></div>
-      </div>
-    </div>
-    <div class="layer-arr">↓<span>Xác nhận tạo thẻ + cộng điểm thành công → trả về SHB</span></div>
-    <div class="layer ly-orange">
-      <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — SHB thông báo Hoàng</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🎉 Thẻ ra đời</strong><em>card_id: CARD-SHB-00281 · Hạng: SHB Platinum · Hiệu lực: 15/01/2024 – 15/01/2025</em></div>
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 SHB App thông báo</strong><em>"Chúc mừng! Bạn vừa nhận được 50.000 điểm SHB Platinum"</em></div>
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📧 Email xác nhận</strong><em>Thông tin thẻ mới + số điểm + hướng dẫn đổi quà</em></div>
-      </div>
-      <div class="good">✓ ~0.8 giây · Thẻ CARD-SHB-00281 được tạo · Hoàng có 50.000 điểm · Sẵn sàng đổi quà</div>
-      </div>
-    </div>
-  </div></div>
-
-  <!-- ② SHB CỘNG LƯỢT -->
-  <div class="scn" id="s1"><div class="arch">
-    <div class="layer ly-purple">
-      <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — SHB khởi tạo cộng lượt đầu năm</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">🏦 Người khởi tạo</strong><em>SHB (không phải Hoàng) · Batch job chạy đầu năm · Áp dụng cho tất cả thẻ Platinum active</em></div>
-        <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">🎯 Đối tượng</strong><em>campaign: SHB-PLATINUM-2024 · siteUserId: SHB-HN-00281 → tra ra card_id: CARD-SHB-00281 · ACTIVE</em></div>
-        <div class="box"><strong>Lượt cần cộng</strong><em>2 lượt nghỉ resort · 1 lượt phòng chờ sân bay · Hiệu lực cả năm 2024</em></div>
-      </div></div>
-    </div>
-    <div class="layer-arr">↓<span>SHB gửi lệnh cộng lượt · campaign=SHB-PLATINUM-2024 · siteUserId=SHB-HN-00281</span></div>
-    <div class="layer ly-blue">
-      <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core nhận &amp; cộng lượt thẳng vào thẻ</div>
-      <div class="layer-body">
-        <div class="g3" style="margin-bottom:10px">
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Tìm thẻ</strong><em>(campaign=SHB-PLATINUM-2024, siteUserId=SHB-HN-00281) → card_id=CARD-SHB-00281 · ACTIVE ✓</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo đơn (POM)</strong><em>Đơn #ORD-20240101-BATCH-00281 · CATALOG-RESORT-2 + CATALOG-LOUNGE-1 · PENDING</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">③ Miễn phí</strong><em>Đặc quyền thẻ Platinum, SHB trả chi phí toàn bộ</em></div>
-        </div>
-        <div class="info" style="margin:0 0 8px">outputType = <strong>TOPUP_CATALOG</strong> → UrCard Core tự cộng lượt thẳng vào thẻ, <strong>không đẩy xuống Inventory</strong></div>
-        <div class="g3">
-          <div class="box" data-detail="topup-catalog" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Cộng lượt vào thẻ</strong><em>CARD-SHB-00281 · resort_quota: 0→2 · lounge_quota: 0→1</em></div>
-          <div class="box" data-detail="topup-catalog" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">📋 Order COMPLETED</strong><em>ORD-20240101-BATCH-00281 · action=TOPUP_CATALOG · COMPLETED</em></div>
-          <div class="box"><strong>Không qua kho mã</strong><em>Không Redis · Không codex · Lượt gắn thẳng vào catalog thẻ</em></div>
-        </div>
-      </div>
-    </div>
-    <div class="layer-arr">↓<span>Xử lý hoàn tất tại tầng bán hàng · Không xuống Inventory · Trả kết quả lên</span></div>
-    <div class="layer ly-green">
-      <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — Bỏ qua (TOPUP_CATALOG xử lý tại tầng bán hàng)</div>
-      <div class="layer-body">
-        <div class="box" style="border-color:#e2e8f0;background:#f8fafc;color:#94a3b8"><strong style="color:#94a3b8">⊘ Không đi qua tầng này</strong><em>TOPUP_CATALOG không cần phân loại kho · UrCard Core đã xử lý xong · Inventory chỉ được gọi khi cần lấy mã/voucher từ kho</em></div>
-      </div>
-    </div>
-    <div class="layer-arr">↓</div>
-    <div class="layer ly-teal">
-      <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Bỏ qua (không có mã để lấy)</div>
-      <div class="layer-body">
-        <div class="box" style="border-color:#e2e8f0;background:#f8fafc;color:#94a3b8"><strong style="color:#94a3b8">⊘ Không đi qua tầng này</strong><em>Không có codex record · Không pop Redis · Lượt đã được cộng trực tiếp vào card DB</em></div>
-      </div>
-    </div>
-    <div class="layer-arr">↓<span>Xác nhận cộng lượt thành công → trả về SHB</span></div>
-    <div class="layer ly-orange">
-      <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Hoàng nhận thông báo</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Push notification</strong><em>"Bạn vừa nhận 2 lượt nghỉ resort + 1 lượt phòng chờ sân bay cho năm 2024"</em></div>
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🎫 Kho lượt của Hoàng</strong><em>Tab "Đặc quyền" SHB App: Resort UB ×2 · Phòng chờ ×1 · HSD: 31/12/2024</em></div>
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🔜 Bước tiếp theo</strong><em>Hoàng sẵn sàng dùng lượt → xem Tình huống ④</em></div>
-      </div>
-      <div class="good">✓ ~0.3 giây · resort_quota: 2 · lounge_quota: 1 · Không phát mã trung gian</div>
-      </div>
-    </div>
-  </div></div>
-
-  <!-- ③ ĐỔI ĐIỂM LẤY VOUCHER GRAB -->
-  <div class="scn" id="s2"><div class="arch">
-    <div class="layer ly-purple">
-      <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Hoàng mở SHB App đổi điểm</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>Hoàng · campaign: SHB-PLATINUM-2024 · siteUserId: SHB-HN-00281 → card_id: CARD-SHB-00281</em></div>
-        <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Vào mục "Đổi điểm" → chọn "Voucher Grab 50k" → bấm Đổi ngay</em></div>
-        <div class="box"><strong>Số dư hiện tại</strong><em>Điểm: 50.000 · Lượt resort: 2 · Lượt phòng chờ: 1</em></div>
-      </div></div>
-    </div>
-    <div class="layer-arr">↓<span>Gửi yêu cầu xuống UrCard</span></div>
-    <div class="layer ly-blue">
-      <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, rồi gọi Inventory</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra số dư</strong><em>Yêu cầu trừ 30.000 điểm · Hiện có 50.000 ✓</em></div>
-        <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo đơn + trừ điểm ngay</strong><em>Đơn #ORD-20240712-9921 · balance: 50.000 → 20.000 · status: PROCESSING</em></div>
-        <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu Inventory fail</strong><em>Hoàn điểm: balance + 30.000 · order → FAILED · Báo lỗi về App</em></div>
-      </div></div>
-    </div>
-    <div class="layer-arr">↓<span>Điểm đã trừ · Gọi Inventory lấy mã · Nếu fail → hoàn điểm</span></div>
-    <div class="layer ly-green">
-      <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — Phân loại: Code nhập kho (API realtime)</div>
-      <div class="layer-body">
-        <div class="info">Tra cấu hình <strong>product_id = GRAB-50K</strong> → loại: <strong>Code nhập kho</strong> · WhoExport=2 (API đối tác Grab) · Qua kho mã ✓</div>
-        <div class="g2">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Định tuyến: Gọi Grab API realtime</strong><em>WhoExport=2, api_id=GRAB_VN_001 → gọi API Grab lấy mã ngay lúc này</em></div>
-          <div class="box"><strong>Các nhánh không dùng</strong><em>Không phải quà vật lý · Không TOPUP_BALANCE · Không UB tự sinh · Không booking</em></div>
-        </div>
-      </div>
-    </div>
-    <div class="layer-arr">↓<span>Kiểm tra Redis cache GRAB-50K → hết mã → gọi Grab API</span></div>
-    <div class="layer ly-teal">
-      <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Lấy mã Grab</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" data-detail="grab-api" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Redis: Hết mã GRAB-50K</strong><em>Cache miss → fallback: đọc cấu hình product_id → WhoExport=2, api_id=GRAB_VN_001</em></div>
-        <div class="box" data-detail="grab-api" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">🔗 Gọi Grab API realtime</strong><em>POST api.grab.com/vouchers/issue · amount=50000 · ref=ORD-20240712-9921</em></div>
-        <div class="box" data-detail="grab-api" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Grab trả về mã</strong><em>code: GRAB-XKQP-7291 · expired: 30/08/2024 · Lưu vào MySQL (codex) + Redis</em></div>
-      </div>
-      <div class="note">codex: id=88821 · code=GRAB-XKQP-7291 · WhoExport=2 · process=210 (ISSUED) · transaction_id=ORD-20240712-9921</div>
-      </div>
-    </div>
-    <div class="layer-arr">↓<span>Inventory trả mã về UrCard → COMPLETED → gửi kết quả Hoàng</span></div>
-    <div class="layer ly-orange">
-      <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Hoàng nhận mã</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" data-detail="deduct-balance" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240712-9921 → COMPLETED · balance: 20.000</em></div>
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện mã trên App</strong><em>"GRAB-XKQP-7291" kèm QR · HSD: 30/08/2024</em></div>
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🛒 Hoàng dùng tại Grab</strong><em>Nhập mã vào app Grab → giảm 50k đơn GrabFood</em></div>
-      </div>
-      <div class="good">✓ ~1.2 giây · Hoàng còn 20.000 điểm · Mã Grab đã được phát</div>
-      </div>
-    </div>
-  </div></div>
-
-  <!-- ④ DÙNG LƯỢT RESORT -->
-  <div class="scn" id="s3"><div class="arch">
-    <div class="layer ly-purple">
-      <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Hoàng đặt nghỉ Resort</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>Hoàng · campaign: SHB-PLATINUM-2024 · siteUserId: SHB-HN-00281 → card_id: CARD-SHB-00281</em></div>
-        <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Vào "Đặc quyền" → chọn UB Fusion Resort Đà Nẵng → bấm "Dùng 1 lượt"</em></div>
-        <div class="box"><strong>Số dư hiện tại</strong><em>Điểm: 20.000 · Lượt resort: 2 · Lượt phòng chờ: 1</em></div>
-      </div></div>
-    </div>
-    <div class="layer-arr">↓<span>Gửi yêu cầu dùng 1 lượt resort xuống UrCard</span></div>
-    <div class="layer ly-blue">
-      <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ lượt trước, rồi gọi Inventory</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra lượt</strong><em>resort_quota: 2 · Yêu cầu: 1 ✓</em></div>
-        <div class="box" data-detail="deduct-quota" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo đơn + trừ lượt ngay</strong><em>Đơn #ORD-20240715-0044 · resort_quota: 2 → 1 · status: PROCESSING</em></div>
-        <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu Inventory fail</strong><em>Hoàn lượt: resort_quota + 1 · order → FAILED · Báo lỗi về App</em></div>
-      </div></div>
-    </div>
-    <div class="layer-arr">↓<span>Lượt đã trừ · Gọi Inventory lấy mã booking · Nếu fail → hoàn lượt</span></div>
-    <div class="layer ly-green">
-      <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — Phân loại: Code nhập kho (stock sẵn)</div>
-      <div class="layer-body">
-        <div class="info">Tra cấu hình <strong>product_id = RESORT-UBDN-1N</strong> → loại: <strong>Code nhập kho</strong> · WhoExport=1 (UB tự sinh/nhập sẵn) · Qua kho mã ✓</div>
-        <div class="g2">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Định tuyến: Lấy từ Redis/MySQL</strong><em>WhoExport=1 → pop mã booking đã nhập sẵn từ Redis pool RESORT-UBDN-1N</em></div>
-          <div class="box"><strong>Các nhánh không dùng</strong><em>Không API realtime · Không nạp tiền · Không ship hàng</em></div>
-        </div>
-      </div>
-    </div>
-    <div class="layer-arr">↓<span>Pop mã từ Redis pool RESORT-UBDN-1N</span></div>
-    <div class="layer ly-teal">
-      <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Lấy mã booking resort</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" data-detail="redis-pop" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Redis: Còn mã (Happy Path)</strong><em>Pop từ Redis pool → UB-RESORT-BK-X91K · Tức thì, không gọi API ngoài</em></div>
-        <div class="box" data-detail="redis-pop" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">📋 Cập nhật trạng thái</strong><em>codex id=55210 · code=UB-RESORT-BK-X91K · process: 111→210 (ISSUED) · gắn ORD-20240715-0044</em></div>
-        <div class="box"><strong>Tồn kho sau giao dịch</strong><em>Redis pool RESORT-UBDN-1N: còn 14 mã · MySQL: 1 mã → USED_PENDING</em></div>
-      </div></div>
-    </div>
-    <div class="layer-arr">↓<span>Inventory trả mã booking về UrCard → COMPLETED → gửi kết quả Hoàng</span></div>
-    <div class="layer ly-orange">
-      <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Hoàng nhận mã &amp; check-in</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Lượt đã trừ từ tầng 2 · ORD-20240715-0044 → COMPLETED · resort_quota: 1</em></div>
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện mã trong App</strong><em>"UB-RESORT-BK-X91K" + QR · HSD: 31/12/2024</em></div>
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🏨 Check-in tại Resort</strong><em>Lễ tân quét QR → Inventory xác nhận → đánh dấu USED → Hoàng nhận phòng</em></div>
-      </div>
-      <div class="good">✓ ~0.4 giây (Redis hit) · resort_quota còn: 1 · Mã booking đã phát</div>
-      </div>
-    </div>
-  </div></div>
-
-  <!-- ⑤ ĐỐI TÁC B2B -->
-  <div class="scn" id="s4"><div class="arch">
-    <div class="layer ly-purple">
-      <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Techcombank gọi API phát thưởng</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">🏢 Đối tác B2B</strong><em>Techcombank · partner_id: TCB-001 · API Key: sk_tcb_prod_xxxx</em></div>
-        <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📡 Yêu cầu API</strong><em>POST /api/v2/redeem · product_id=SHOPEE-100K · qty=50 · receiver_list=[50 nhân viên]</em></div>
-        <div class="box"><strong>Mục đích</strong><em>Phát thưởng Q2/2024 cho 50 nhân viên xuất sắc · Mỗi người 1 voucher Shopee 100k</em></div>
-      </div></div>
-    </div>
-    <div class="layer-arr">↓<span>API request xác thực bằng API Key → vào UrCard Core</span></div>
-    <div class="layer ly-blue">
-      <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core xử lý đơn B2B</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Xác thực đối tác</strong><em>API Key hợp lệ · partner_id=TCB-001 · Hạn mức còn: 500 voucher/ngày ✓</em></div>
-        <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Tạo đơn (POM)</strong><em>#ORD-B2B-20240720-TCB-001 · 50 sub-orders · product_id: SHOPEE-100K · qty: 50</em></div>
-        <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">③ Giá B2B</strong><em>Giá campaign TCB: 80.000đ/voucher (thay vì 100.000đ giá lẻ) · Tổng: 4.000.000đ</em></div>
-      </div></div>
-    </div>
-    <div class="layer-arr">↓<span>Gửi lệnh: product_id=SHOPEE-100K, qty=50, partner=TCB-001</span></div>
-    <div class="layer ly-green">
-      <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — Phân loại: Code nhập kho (batch)</div>
-      <div class="layer-body">
-        <div class="info">Tra cấu hình <strong>product_id = SHOPEE-100K</strong> → loại: <strong>Code nhập kho</strong> · WhoExport=0 (nhập sẵn từ Shopee) · Qua kho mã ✓ · Cần 50 mã</div>
-        <div class="g2">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Kiểm tra tồn kho: Đủ</strong><em>Redis pool SHOPEE-100K còn 63 mã ✓ → Batch pop 50 mã</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Sau giao dịch: Low stock</strong><em>Còn 13 mã — dưới ngưỡng 20 → gửi cảnh báo Ops team nhập thêm</em></div>
-        </div>
-      </div>
-    </div>
-    <div class="layer-arr">↓<span>Batch pop 50 mã từ Redis pool SHOPEE-100K</span></div>
-    <div class="layer ly-teal">
-      <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Lấy 50 mã Shopee</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" data-detail="batch-pop" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Lấy 50 mã từ Redis</strong><em>Batch pop: SHOPEE-A001 → SHOPEE-A050 · Tất cả process=111 (READY)</em></div>
-        <div class="box" data-detail="batch-pop" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">📋 Cập nhật MySQL</strong><em>50 bản ghi codex: process 111→210 (ISSUED) · Gắn với ORD-B2B-20240720-TCB-001</em></div>
-        <div class="box"><strong>Tồn kho sau giao dịch</strong><em>Redis SHOPEE-100K: 63 → 13 mã · Email cảnh báo gửi Ops team</em></div>
-      </div>
-      <div class="note">Còn 13 mã, dưới ngưỡng 20 → hệ thống tự gửi email nhắc Ops team nhập thêm mã Shopee 100k.</div>
-      </div>
-    </div>
-    <div class="layer-arr">↓<span>Trả 50 mã về UrCard → gửi kết quả cho Techcombank</span></div>
-    <div class="layer ly-orange">
-      <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Techcombank nhận &amp; phát cho nhân viên</div>
-      <div class="layer-body"><div class="g3">
-        <div class="box" data-detail="webhook-b2b" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🔗 Webhook về Techcombank</strong><em>POST tcb-webhook/gift-result · 50 mã kèm thông tin nhân viên · status: SUCCESS</em></div>
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📧 Techcombank gửi mã</strong><em>TCB tự gửi email/Zalo cho 50 nhân viên, mỗi người 1 mã Shopee riêng</em></div>
-        <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🛒 Nhân viên dùng mã</strong><em>Nhập SHOPEE-Axxx vào Shopee → giảm 100k · Shopee tự xác nhận nội bộ</em></div>
-      </div>
-      <div class="good">✓ ~2.1 giây (batch 50 mã) · Techcombank nhận đủ 50 voucher · 13 mã tồn kho — đã cảnh báo Ops</div>
-      </div>
-    </div>
-  </div></div>
-
-  </div><!-- /view0 -->
-
-  <!-- VIEW 1: theo loại quà -->
-  <div class="view" id="view1" style="display:none">
-
-    <!-- gift type overview cards -->
-    <div class="gt-overview">
-      <div class="gt-card gt-topup on" onclick="showGt(0,this)">
-        <div class="gt-icon">💳</div>
-        <div class="gt-name">Topup đối tác</div>
-        <div class="gt-desc">Nạp thẳng qua API</div>
-        <div class="gt-eg">Điện thoại, ví điện tử, VETC</div>
-      </div>
-      <div class="gt-card gt-booking" onclick="showGt(1,this)">
-        <div class="gt-icon">📅</div>
-        <div class="gt-name">Quà booking</div>
-        <div class="gt-desc">Đặt chỗ realtime</div>
-        <div class="gt-eg">DragonPass, phòng chờ, spa</div>
-      </div>
-      <div class="gt-card gt-ubcode" onclick="showGt(2,this)">
-        <div class="gt-icon">🎫</div>
-        <div class="gt-name">CashVoucher UrBox</div>
-        <div class="gt-desc">UB tự sinh mã nội bộ</div>
-        <div class="gt-eg">Voucher giảm giá, ưu đãi UB</div>
-      </div>
-      <div class="gt-card gt-stock" onclick="showGt(3,this)">
-        <div class="gt-icon">🗂</div>
-        <div class="gt-name">Evoucher đối tác</div>
-        <div class="gt-desc">Mã nhập kho sẵn</div>
-        <div class="gt-eg">Grab, CGV, Shopee, Garena</div>
-      </div>
-      <div class="gt-card gt-physical" onclick="showGt(4,this)">
-        <div class="gt-icon">📦</div>
-        <div class="gt-name">Quà vật lý</div>
-        <div class="gt-desc">Ship hàng tận nơi</div>
-        <div class="gt-eg">Hộp quà, mỹ phẩm, đặc sản</div>
-      </div>
-    </div>
-
-    <!-- gift type flows -->
-    <!-- GT0: Topup đối tác -->
-    <div class="gt-flow on" id="gt0"><div class="arch">
-      <div class="layer ly-purple">
-        <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đổi điểm nạp điện thoại</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>Tuấn · campaign: MB-REWARDS-2024 · siteUserId: MB-DN-00199</em></div>
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Chọn "Nạp 50k Viettel" · Nhập số điện thoại: 0912-xxx-xxx · Bấm Nạp ngay</em></div>
-          <div class="box"><strong>Điều kiện</strong><em>Giá: 50.000 điểm · Số dư: 200.000 ✓ · SĐT: 0912xxxxxx (Viettel)</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Gửi yêu cầu + số điện thoại xuống UrCard</span></div>
-      <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, tạo đơn</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 200.000 → 150.000 · Đơn #ORD-20240310-7720 · PROCESSING</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Lưu thông tin nạp</strong><em>phone: 0912xxxxxx · telco: VIETTEL · amount: 50.000đ</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Đây là quà nhóm (B) — bất đồng bộ</strong><em>Nhà mạng chỉ xác nhận "đã nhận lệnh", chưa chắc đã nạp xong · timeoutPolicy=AUTO_REFUND (có thể tra soát lại qua API Viettel trước khi hoàn)</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Điểm đã trừ · Gọi Inventory → API nhà mạng nạp thẳng</span></div>
-      <div class="layer ly-green">
-        <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — outputType: TOPUP_DIRECT (nạp qua API đối tác)</div>
-        <div class="layer-body">
-          <div class="info">product_id = VIETTEL-50K → outputType: <strong>TOPUP_DIRECT</strong> · Gọi API nhà mạng Viettel · Không phát mã code · <strong>Viettel trả "đã tiếp nhận lệnh nạp"</strong>, kết quả nạp thật báo sau qua webhook riêng</div>
-          <div class="g2">
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Gọi Viettel Topup API</strong><em>POST api.viettel.vn/topup · phone=0912xxxxxx · amount=50000 · ref=ORD-20240310-7720</em></div>
-            <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">② Viettel tiếp nhận (chưa xác nhận xong)</strong><em>trans_id: VTL-2024031088821 · status: PROCESSING · Viettel sẽ webhook về sau</em></div>
-          </div>
-        </div>
-      </div>
-      <div class="layer-arr">↓<span>Đã gửi lệnh, chưa có kết quả cuối · Inventory trả "đang xử lý" về UrCard</span></div>
-      <div class="layer ly-teal">
-        <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Không dùng (không phát mã, nạp trực tiếp)</div>
-        <div class="layer-body">
-          <div class="box" style="border-color:#e2e8f0;background:#f8fafc;color:#94a3b8"><strong style="color:#94a3b8">⊘ Bỏ qua kho mã</strong><em>Không codex record · Không Redis · Viettel xử lý nội bộ, kết quả trả qua webhook riêng chứ không qua kho mã</em></div>
-        </div>
-      </div>
-      <div class="layer-arr">↓<span>UrCard nhận "đang xử lý" → Order chuyển AWAITING_CALLBACK, không phải COMPLETED</span></div>
-      <div class="layer ly-orange">
-        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Order ở trạng thái chờ, chưa phải thành công cuối cùng</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">⏳ Order AWAITING_CALLBACK</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240310-7720 → AWAITING_CALLBACK · externalRef=VTL-2024031088821 · callbackDeadline: +2 phút</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 App thông báo</strong><em>"Đang nạp 50.000đ Viettel vào 0912xxxxxx..."</em></div>
-          <div class="box"><strong>Chưa có kết quả cuối</strong><em>Không phải COMPLETED — chờ webhook nạp tiền thật từ Viettel</em></div>
-        </div>
-        <div class="note">✓ Điểm trừ ngay tại tầng 2 · Nhưng đơn CHƯA hoàn tất — cartpay hiện tại từng trả "SUCCESS" ở bước này ngay cả khi chưa biết kết quả thật; thiết kế mới tránh lặp lại lỗi đó</div>
-        </div>
-      </div>
-      <div class="layer-arr">↓<span>~vài giây sau · Viettel gọi webhook riêng về UrCard</span></div>
-      <div class="layer" style="border-color:#7dd3fc">
-        <div class="layer-head" style="background:#e0f2fe;color:#0369a1;border-bottom:1px solid #bae6fd"><div class="layer-num" style="background:#0369a1;color:#fff">6</div>Webhook Callback — Viettel báo kết quả nạp tiền</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#7dd3fc;background:#f0f9ff"><strong style="color:#0369a1">🔗 POST /urcard/webhooks/topup-status</strong><em>trans_id=VTL-2024031088821 · status=SUCCESS · "So du hien tai: 52,350d"</em></div>
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ UrCard tra externalRef → cập nhật Order</strong><em>ORD-20240310-7720: AWAITING_CALLBACK → COMPLETED</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu status=FAILED thay vì SUCCESS</strong><em>UrCard hoàn điểm: balance + 50.000 · Order → FAILED</em></div>
-        </div>
-        <div class="good">✓ Nếu quá callbackDeadline (2 phút) mà Viettel không gọi webhook → timeoutPolicy=AUTO_REFUND → cronjob tự tra soát lại qua API Viettel, nếu vẫn không xác nhận được thì tự động hoàn điểm + đánh FAILED</div>
-        </div>
-      </div>
-    </div></div>
-
-    <!-- GT1: Quà booking -->
-    <div class="gt-flow" id="gt1"><div class="arch">
-      <div class="layer ly-purple">
-        <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đặt phòng chờ sân bay</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>An · campaign: TCB-INFINITE-2024 · siteUserId: TCB-HN-00712 · lounge_quota: 2</em></div>
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Vào "Đặc quyền" → Chọn "Phòng chờ Plaza Premium · HAN" · Chọn ngày 15/06 · Bấm Đặt chỗ</em></div>
-          <div class="box"><strong>Điều kiện</strong><em>lounge_quota: 2 ✓ · Sân bay: HAN · Ngày: 15/06/2024 · Giờ: 08:00</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Gửi yêu cầu + thông tin chuyến bay xuống UrCard</span></div>
-      <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ lượt trước, gọi Inventory đặt chỗ</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="deduct-quota" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ lượt</strong><em>lounge_quota: 2 → 1 · Đơn #ORD-20240615-0081 · PROCESSING</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Gửi thông tin đặt chỗ</strong><em>lounge_id: HAN-PLAZA-T2 · date: 2024-06-15 · time: 08:00 · pax: 1</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu API booking fail</strong><em>Hoàn lượt: lounge_quota + 1 · order → FAILED · Thông báo lỗi</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Lượt đã trừ · Inventory gọi DragonPass API đặt chỗ realtime</span></div>
-      <div class="layer ly-green">
-        <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — outputType: BOOKING (đặt chỗ realtime)</div>
-        <div class="layer-body">
-          <div class="info">product_id = LOUNGE-HAN-PLAZA → outputType: <strong>BOOKING</strong> · WhoExport=2 · Gọi DragonPass API đặt chỗ thực tế tại Plaza Premium HAN</div>
-          <div class="g2">
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Gọi DragonPass API</strong><em>POST api.dragonpass.com/lounge/book · lounge_id=HAN-T2-PLAZA · date=2024-06-15 · ref=ORD-20240615-0081</em></div>
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">② DragonPass xác nhận</strong><em>booking_ref=DP-2024061500081 · QR code · Slot confirmed · Valid: 08:00-12:00</em></div>
-          </div>
-        </div>
-      </div>
-      <div class="layer-arr">↓<span>Booking xác nhận · Trả mã QR về UrCard</span></div>
-      <div class="layer ly-teal">
-        <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Lưu booking ref vào codex</div>
-        <div class="layer-body"><div class="g2">
-          <div class="box" data-detail="redis-pop" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">📋 codex record</strong><em>code=DP-2024061500081 · WhoExport=2 · process=210 · expired: 2024-06-15 12:00</em></div>
-          <div class="box" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">🔑 Check-in tại phòng chờ</strong><em>An quét QR → DragonPass xác nhận → process: 210→300 (USED) · ghi nhận check-in time</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Trả booking ref về UrCard → App hiện QR cho An</span></div>
-      <div class="layer ly-orange">
-        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — An nhận QR, vào phòng chờ</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Lượt đã trừ từ tầng 2 · ORD-20240615-0081 → COMPLETED · lounge_quota: 1</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện QR trong App</strong><em>QR Code · "Plaza Premium T2 · 15/06/2024 · 08:00-12:00" · booking_ref: DP-2024061500081</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🛋 Vào phòng chờ</strong><em>An quét QR tại cửa → Nhân viên xác nhận → An vào phòng chờ thụ hưởng</em></div>
-        </div>
-        <div class="good">✓ ~1.5 giây · Booking realtime · lounge_quota: 2→1 · Slot đặt thành công</div>
-        </div>
-      </div>
-    </div></div>
-
-    <!-- GT2: CashVoucher UrBox -->
-    <div class="gt-flow" id="gt2"><div class="arch">
-      <div class="layer ly-purple">
-        <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đổi điểm lấy Voucher UrBox</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>Linh · campaign: ACB-PREMIUM-2024 · siteUserId: ACB-HN-00388</em></div>
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Chọn "Voucher UrBox 200k" → Bấm Đổi ngay</em></div>
-          <div class="box"><strong>Điều kiện</strong><em>Giá: 60.000 điểm · Số dư: 90.000 ✓</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Gửi yêu cầu xuống UrCard</span></div>
-      <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, tạo đơn</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 90.000 → 30.000 · Đơn #ORD-20240520-3301 · PROCESSING</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Gọi Inventory sinh mã</strong><em>product_id: UBVOUCHER-200K · WhoExport=1 (UB tự sinh) · qty=1</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu sinh mã fail</strong><em>Hoàn điểm: balance + 60.000 · order → FAILED</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Điểm đã trừ · Inventory gen mã UB nội bộ</span></div>
-      <div class="layer ly-green">
-        <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — outputType: UB_GEN (UB tự sinh mã)</div>
-        <div class="layer-body">
-          <div class="info">product_id = UBVOUCHER-200K → outputType: <strong>UB_GEN</strong> · WhoExport=1 · Inventory tự tạo mã ngẫu nhiên theo prefix + pattern cấu hình sẵn</div>
-          <div class="g2">
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Gen mã theo config</strong><em>prefix=UBV · length=12 · pattern: UBV-XXXX-XXXX · Gen: UBV-K7Q2-M9R4</em></div>
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">② Lưu codex</strong><em>code=UBV-K7Q2-M9R4 · WhoExport=1 · process=210 (ISSUED) · expired: 30/06/2024</em></div>
-          </div>
-        </div>
-      </div>
-      <div class="layer-arr">↓<span>Mã sinh xong · Trả về UrCard</span></div>
-      <div class="layer ly-teal">
-        <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Ghi nhận mã vừa sinh</div>
-        <div class="layer-body"><div class="g2">
-          <div class="box" data-detail="redis-pop" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">📋 codex record</strong><em>id=77412 · code=UBV-K7Q2-M9R4 · WhoExport=1 · process=210 · transaction_id=ORD-20240520-3301</em></div>
-          <div class="box" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">🔑 Validate tại UrBox</strong><em>Khi Linh dùng: merchant quét mã → Inventory verify codex → process: 210→300 (USED)</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Trả mã về UrCard → App hiện mã cho Linh</span></div>
-      <div class="layer ly-orange">
-        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Linh nhận mã, dùng tại UrBox</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240520-3301 → COMPLETED · balance: 30.000</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện mã trong App</strong><em>UBV-K7Q2-M9R4 · QR Code · HSD: 30/06/2024 · Giá trị: 200.000đ</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🛍 Dùng tại UrBox</strong><em>Linh trình mã khi checkout → cashier quét QR → giảm 200k</em></div>
-        </div>
-        <div class="good">✓ ~0.3 giây · Mã gen tức thì · balance: 90k → 30k điểm · Mã unique mỗi lần</div>
-        </div>
-      </div>
-    </div></div>
-
-    <!-- GT3: Evoucher đối tác -->
-    <div class="gt-flow" id="gt3"><div class="arch">
-      <div class="layer ly-purple">
-        <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đổi điểm lấy thẻ game</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>Khoa · campaign: TP-FAMILY-2024 · siteUserId: TP-HCM-00941</em></div>
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Chọn "Thẻ game Garena 100k" → Bấm Đổi ngay</em></div>
-          <div class="box"><strong>Điều kiện</strong><em>Giá: 45.000 điểm · Số dư: 80.000 ✓ · WhoExport=0 (nhập sẵn từ Garena)</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Gửi yêu cầu xuống UrCard</span></div>
-      <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, gọi Inventory lấy mã</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 80.000 → 35.000 · Đơn #ORD-20240801-9911 · PROCESSING</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Gọi Inventory lấy mã</strong><em>product_id: GARENA-100K · WhoExport=0 (stock sẵn) · qty=1</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu hết mã / fail</strong><em>Hoàn điểm: balance + 45.000 · order → FAILED · Thông báo hết hàng</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Điểm đã trừ · Inventory pop mã từ Redis/MySQL</span></div>
-      <div class="layer ly-green">
-        <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — outputType: STOCK_CODE (lấy mã có sẵn)</div>
-        <div class="layer-body">
-          <div class="info">product_id = GARENA-100K → outputType: <strong>STOCK_CODE</strong> · WhoExport=0 (mã nhập sẵn từ Garena) · Kiểm tra Redis trước, fallback MySQL</div>
-          <div class="g2">
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Redis hit</strong><em>LPOP inventory:GARENA-100K → GRN-2024-K8P2-M5Q1 · Còn 31 mã (trên ngưỡng 10)</em></div>
-            <div class="box" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">② Cập nhật codex</strong><em>code=GRN-2024-K8P2-M5Q1 · process: 111→210 (ISSUED) · gắn ORD-20240801-9911</em></div>
-          </div>
-        </div>
-      </div>
-      <div class="layer-arr">↓<span>Mã lấy xong · Trả về UrCard</span></div>
-      <div class="layer ly-teal">
-        <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — codex cập nhật, Redis pool giảm</div>
-        <div class="layer-body"><div class="g2">
-          <div class="box" data-detail="redis-pop" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">📋 codex record</strong><em>code=GRN-2024-K8P2-M5Q1 · WhoExport=0 · process=210 · transaction_id=ORD-20240801-9911</em></div>
-          <div class="box" style="border-color:#99f6e4;background:#f0fdfa"><strong style="color:#0f766e">📊 Tồn kho</strong><em>Redis GARENA-100K: 32 → 31 mã · Còn trên ngưỡng alert (10) → Không cảnh báo</em></div>
-        </div></div>
-      </div>
-      <div class="layer-arr">↓<span>Trả mã về UrCard → App hiện serial + pin cho Khoa</span></div>
-      <div class="layer ly-orange">
-        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Khoa nhận mã, nạp vào game</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ Order COMPLETED</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240801-9911 → COMPLETED · balance: 35.000</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Hiện mã trong App</strong><em>Serial: GRN-2024-K8P2 · PIN: M5Q1xxxx · HSD: 31/12/2024</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">🎮 Nạp vào Garena</strong><em>Vào Garena → Nạp thẻ → Nhập serial + PIN → Tài khoản nhận 100k Garena Shell</em></div>
-        </div>
-        <div class="good">✓ ~0.4 giây (Redis hit) · Mã từ kho nhập sẵn · balance: 80k → 35k điểm</div>
-        </div>
-      </div>
-    </div></div>
-
-  </div><!-- /view1 -->
-
+<div class="vtabs">
+  <button class="vtab on" onclick="switchView(0)">🏗 Kiến trúc tổng thể</button>
+  <button class="vtab" onclick="switchView(1)">🎁 Luồng theo loại quà</button>
 </div>
 
-    <!-- GT4: Quà vật lý -->
-    <div class="gt-flow" id="gt4"><div class="arch">
-      <div class="layer ly-purple">
-        <div class="layer-head"><div class="layer-num">1</div>Tầng trải nghiệm — Khách hàng đổi điểm lấy hộp quà</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">👤 Người dùng</strong><em>Mai · campaign: VIB-GOLD-2024 · siteUserId: VIB-HCM-00512</em></div>
-          <div class="box" style="border-color:#c4b5fd;background:#f5f3ff"><strong style="color:#6d28d9">📱 Thao tác</strong><em>Chọn "Hộp quà Tết 2024" · Nhập địa chỉ giao hàng · Bấm Đổi ngay</em></div>
-          <div class="box"><strong>Điều kiện</strong><em>Giá: 80.000 điểm · Số dư: 120.000 điểm ✓ · Địa chỉ: 12 Lê Lợi, Q.1, HCM</em></div>
-        </div></div>
+<!-- ═══════════════ VIEW 0: ARCHITECTURE ═══════════════ -->
+<div class="view on" id="view0">
+
+<!-- scenario buttons -->
+<div id="scnBtns" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+  <button class="btn primary" onclick="showScn(0)">① Redeem quà (B2C/B2B)</button>
+  <button class="btn" onclick="showScn(1)">② Charge điểm/lượt (Partner)</button>
+  <button class="btn" onclick="showScn(2)">③ Order code manual</button>
+</div>
+
+<div class="arch" id="arch0">
+
+  <!-- LAYER 1: BUSINESS CHANNELS -->
+  <div class="layer ly-slate" id="L1">
+    <div class="layer-head"><div class="lnum">1</div>BUSINESS CHANNELS</div>
+    <div class="layer-body">
+      <div class="boxes">
+        <div class="box hi-blue" data-detail="b2b"><strong style="color:#1d4ed8">🏢 Doanh nghiệp (B2B)</strong><em>Techcombank, SHB, VIB, MB... phát thưởng cho khách hàng hoặc nhân viên</em></div>
+        <div class="box hi-blue" data-detail="b2c"><strong style="color:#1d4ed8">👤 Khách hàng cá nhân (B2C)</strong><em>User đổi điểm/lượt tích lũy lấy quà trên App</em></div>
       </div>
-      <div class="layer-arr">↓<span>Gửi yêu cầu + địa chỉ giao hàng xuống UrCard</span></div>
-      <div class="layer ly-blue">
-        <div class="layer-head"><div class="layer-num">2</div>Tầng bán hàng — UrCard Core trừ điểm trước, tạo đơn ship</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" data-detail="pom-order" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">① Kiểm tra & trừ điểm</strong><em>balance: 120.000 → 40.000 · Đơn #ORD-20240125-5501 · PROCESSING</em></div>
-          <div class="box" style="border-color:#bfdbfe;background:#eff6ff"><strong style="color:#1d4ed8">② Lưu địa chỉ giao hàng</strong><em>shipping_address: "12 Lê Lợi, Q.1, HCM" · recipient: Mai · phone: 090xxxxxxx</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Đây là quà nhóm (B) — bất đồng bộ</strong><em>Chưa biết kết quả ship thật ngay · timeoutPolicy=MANUAL_HOLD (không tự hoàn khi hết hạn vì hàng có thể đang trên đường)</em></div>
-        </div></div>
+    </div>
+  </div>
+
+  <div class="arr">↓<span>Request qua Method (API / Webhook)</span></div>
+
+  <!-- LAYER 2: DEAL MANAGEMENT / OMNI-CHANNELS -->
+  <div class="layer ly-blue" id="L2">
+    <div class="layer-head"><div class="lnum">2</div>DEAL MANAGEMENT — OMNI-CHANNELS</div>
+    <div class="layer-body">
+      <div class="boxes">
+        <div class="box hi-blue"><strong style="color:#1d4ed8">🔗 API Rewards</strong><em>Partner gọi trực tiếp · giftDetailId + siteUserId + idempotencyKey</em></div>
+        <div class="box hi-blue"><strong style="color:#1d4ed8">📱 UrBox App</strong><em>Mobile app B2C · user đổi điểm/lượt</em></div>
+        <div class="box hi-blue"><strong style="color:#1d4ed8">🌐 Whitelabel / ZMA</strong><em>App white-label cho partner · SHB App, TCB App...</em></div>
+        <div class="box hi-blue"><strong style="color:#1d4ed8">🧑‍💼 Self-Serve (UrStaff)</strong><em>Nội bộ UrBox xử lý thủ công</em></div>
+        <div class="box hi-blue"><strong style="color:#1d4ed8">🖥 Website / Portal</strong><em>UrBox Portal · Campaign management</em></div>
       </div>
-      <div class="layer-arr">↓<span>Điểm đã trừ · Gọi Inventory xử lý đơn vật lý</span></div>
-      <div class="layer ly-green">
-        <div class="layer-head"><div class="layer-num">3</div>Tầng Inventory — outputType: PHYSICAL (ship hàng)</div>
-        <div class="layer-body">
-          <div class="info">product_id = GIFT-BOX-TET-2024 → outputType: <strong>PHYSICAL</strong> · Không lấy mã code · Trừ tồn kho SKU → đẩy đơn hãng vận chuyển · <strong>Trả về ngay: "đã đẩy đơn, đang chờ carrier xác nhận"</strong> — không phải kết quả giao hàng thật</div>
-          <div class="g2">
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">① Trừ tồn kho</strong><em>SKU: GIFT-BOX-TET-001 · stock: 45 → 44 · warehouse: HCM-01</em></div>
-            <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">② Tạo đơn vận chuyển</strong><em>Đẩy đơn GHTK: ship_order_id=GHTK-2024-88201 · ETA: 2-3 ngày · trạng thái: SHIPPING_PENDING</em></div>
-          </div>
+      <div class="info">Method: Client API / Webhook Integration Gateway — mọi request đều vào đây trước</div>
+    </div>
+  </div>
+
+  <div class="arr">↓<span>Xác thực & Route request xuống Entity Core</span></div>
+
+  <!-- LAYER 3: URBOX PORTAL -->
+  <div class="layer ly-violet" id="L3">
+    <div class="layer-head"><div class="lnum">3</div>URBOX PORTAL — Campaign & Merchant Management</div>
+    <div class="layer-body">
+      <div class="boxes">
+        <div class="box hi-violet"><strong style="color:#6d28d9">📋 Campaign Management</strong><em>Tạo/quản lý Campaign, Giftset, Budget (PO/SubPO), Expiry</em></div>
+        <div class="box hi-violet"><strong style="color:#6d28d9">🏪 Merchant Management</strong><em>Quản lý Merchant, Product catalog, Giá vốn (Cost)</em></div>
+        <div class="box hi-violet"><strong style="color:#6d28d9">📊 Reporting</strong><em>Báo cáo doanh thu, đối soát, reconciliation cho DA</em></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arr">↓<span>API request xuống Entity Core</span></div>
+
+  <!-- LAYER 4: ENTITY CORE -->
+  <div class="layer ly-purple" id="L4">
+    <div class="layer-head"><div class="lnum">4</div>ENTITY CORE — Tầng tiếp nhận & Kết nối Client</div>
+    <div class="layer-body">
+      <div class="box wide hi-violet" data-detail="entity-core">
+        <strong style="color:#7c3aed">ENTITY CORE ENGINE</strong>
+        <em>
+          • Đầu mối kết nối trực tiếp API với CLIENT<br>
+          • Xác thực đối tác (API Key, signature) & Nhận/Trả kết quả Request<br>
+          • Cập nhật trạng thái đơn hàng cuối cùng (Final Order Status)<br>
+          • Tạo <strong>Transaction</strong> (source of truth) · idempotency via correlation_id
+        </em>
+      </div>
+      <div class="boxes">
+        <div class="box hi-blue"><strong style="color:#1d4ed8">🔐 Auth & Validation</strong><em>API Key · Rate limit · Schema validation</em></div>
+        <div class="box hi-blue"><strong style="color:#1d4ed8">📝 Transaction Log</strong><em>Tạo TXN · correlation_id · flow_direction: CHARGE | REDEEM</em></div>
+        <div class="box hi-blue"><strong style="color:#1d4ed8">🔄 Status Callback</strong><em>Webhook trả kết quả về partner khi hoàn tất</em></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arr">↓<span>Route sang UrCard Core xử lý</span></div>
+
+  <!-- LAYER 5: URCARD CORE -->
+  <div class="layer ly-green" id="L5">
+    <div class="layer-head"><div class="lnum">5</div>URCARD CORE — Tầng xử lý giao dịch</div>
+    <div class="layer-body">
+      <div class="boxes">
+        <div class="box hi-green" data-detail="campaign-processing">
+          <strong style="color:#15803d">🎯 Campaign Processing</strong>
+          <em>• Quản lý Campaign ID, Client Budget (PO/SubPO), Giftset, Expiry<br>• Tính Doanh thu dựa trên Selling Price (Markup)</em>
+        </div>
+        <div class="box hi-green" data-detail="card-balance">
+          <strong style="color:#15803d">💳 Thẻ lượt / Điểm</strong>
+          <em>Đơn vị thanh toán dùng để mua quà ở tầng dưới<br>• TOPUP_BALANCE: cộng điểm thẳng · TOPUP_CATALOG: cộng lượt<br>• DEBIT: trừ khi user đổi quà</em>
+        </div>
+        <div class="box hi-green">
+          <strong style="color:#15803d">📦 Order Management (POM)</strong>
+          <em>Tạo Order khi PAYMENT · idempotency · PENDING→PROCESSING→COMPLETED/FAILED</em>
         </div>
       </div>
-      <div class="layer-arr">↓<span>Đơn ship tạo xong (chưa giao) · Inventory trả về "đang chờ" cho UrCard</span></div>
-      <div class="layer ly-teal">
-        <div class="layer-head"><div class="layer-num">4</div>Tầng Kho mã — Không dùng (quà vật lý dùng kho hàng vật lý)</div>
-        <div class="layer-body">
-          <div class="box" style="border-color:#e2e8f0;background:#f8fafc;color:#94a3b8"><strong style="color:#94a3b8">⊘ Bỏ qua kho mã</strong><em>Không có codex record · Không Redis · Thay vào đó: WMS (Warehouse Mgmt) quản lý SKU + GHTK/GHN quản lý vận đơn</em></div>
+      <div class="note">⚑ Deduct-first: Trừ điểm/lượt TRƯỚC khi gọi Rewards Core · Nếu fail → hoàn lại (rollback entry)</div>
+      <div class="info">Quà lượt/điểm (TOPUP_BALANCE / TOPUP_CATALOG): xử lý tại đây, <strong>không đẩy xuống Rewards Core</strong></div>
+    </div>
+  </div>
+
+  <div class="arr">↓<span>Chuyển tiếp request mua quà xuống Rewards Core</span></div>
+
+  <!-- LAYER 6: REWARDS CORE -->
+  <div class="layer ly-teal" id="L6">
+    <div class="layer-head"><div class="lnum">6</div>REWARDS CORE — Tầng định hướng loại quà</div>
+    <div class="layer-body">
+      <div class="boxes">
+        <div class="box hi-teal"><strong style="color:#0f766e">🔀 Điều hướng loại quà</strong><em>Detect từ <code style="background:#e0f2fe;padding:1px 4px;border-radius:2px">giftDetailId</code> → output_type → route đúng handler</em></div>
+      </div>
+      <div class="boxes" style="margin-top:6px">
+        <div class="box hi-violet"><strong style="color:#6d28d9">📅 Quà Booking đối tác</strong><em>DragonPass · Premium Service · Fasttrack · Đặt chỗ realtime</em></div>
+        <div class="box hi-orange"><strong style="color:#c2410c">💳 Topup đối tác</strong><em>Topup trực tiếp · VNA · Viettel · Ví điện tử</em></div>
+        <div class="box hi-teal"><strong style="color:#0f766e">🎫 E-Voucher đối tác</strong><em>Voucher tiền mặt đối tác sinh mã · Thẻ điện thoại · Items · Deal · Lockitem SKU</em></div>
+        <div class="box hi-green"><strong style="color:#15803d">🎟 E-Voucher UrBox</strong><em>Voucher tiền mặt UrBox tự sinh (CashVoucher)</em></div>
+        <div class="box hi-blue"><strong style="color:#1d4ed8">📦 Quà vật lý</strong><em>Ship hàng GHTK/GHN · Trừ tồn kho SKU</em></div>
+        <div class="box hi-gray"><strong style="color:#94a3b8">🔄 Quà lượt/điểm</strong><em>Chỉ topup điểm hoặc lượt cho thẻ · Xử lý tại UrCard Core, không xuống đây</em></div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="dtree">
+          <div class="dtree-title">🔀 Điều hướng cách lấy code</div>
+          <div class="dtree-row"><span class="dtree-q">Booking (realtime)?</span><span class="dtree-arr">→</span><span class="dtree-a">Gọi API đối tác ngay (DragonPass...)</span></div>
+          <div class="dtree-row"><span class="dtree-q">Topup đối tác?</span><span class="dtree-arr">→</span><span class="dtree-a">Gọi API nhà mạng · Không sinh mã</span></div>
+          <div class="dtree-row"><span class="dtree-q">E-Voucher đối tác?</span><span class="dtree-arr">→</span><span class="dtree-a">Lấy từ kho (Redis/MySQL) hoặc gọi API</span></div>
+          <div class="dtree-row"><span class="dtree-q">E-Voucher UrBox?</span><span class="dtree-arr">→</span><span class="dtree-a">UrBox tự sinh mã theo prefix+pattern</span></div>
+          <div class="dtree-row"><span class="dtree-q">Quà vật lý?</span><span class="dtree-arr">→</span><span class="dtree-a">Không sinh mã · Trừ SKU · Đẩy đơn ship</span></div>
         </div>
       </div>
-      <div class="layer-arr">↓<span>UrCard nhận "đang chờ" → Order chuyển AWAITING_CALLBACK, không phải COMPLETED</span></div>
-      <div class="layer ly-orange">
-        <div class="layer-head"><div class="layer-num">5</div>Tầng phân phối — Order ở trạng thái chờ, chưa phải thành công cuối cùng</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">⏳ Order AWAITING_CALLBACK</strong><em>Điểm đã trừ từ tầng 2 · ORD-20240125-5501 → AWAITING_CALLBACK · externalRef=GHTK-2024-88201 · callbackDeadline: +5 ngày</em></div>
-          <div class="box" style="border-color:#fdba74;background:#fff7ed"><strong style="color:#c2410c">📱 Push notification</strong><em>"Đơn hàng đang giao · Mã vận đơn GHTK-2024-88201 · ETA: 27/01/2024"</em></div>
-          <div class="box"><strong>Chưa có kết quả cuối</strong><em>Không phải COMPLETED — chờ webhook giao hàng thật từ GHTK</em></div>
+    </div>
+  </div>
+
+  <div class="arr">↓<span>Gọi API / lấy mã từ Merchant</span></div>
+
+  <!-- LAYER 7: MERCHANT CONNECTOR -->
+  <div class="layer ly-orange" id="L7">
+    <div class="layer-head"><div class="lnum">7</div>MERCHANT CONNECTOR LAYER — Kết nối Merchant</div>
+    <div class="layer-body">
+      <div class="box wide hi-orange" data-detail="merchant-connector">
+        <strong style="color:#c2410c">MERCHANT CONNECTOR ENGINE</strong>
+        <em>Chuyên trách giao tiếp, gọi API/Webhook kết nối với Merchant bên ngoài để lấy mã Code thời gian thực (Real-time Get Code)</em>
+      </div>
+      <div class="boxes">
+        <div class="box hi-orange"><strong style="color:#c2410c">⚡ API Realtime</strong><em>Gọi đồng bộ lấy mã ngay · DragonPass, Grab, Shopee...</em></div>
+        <div class="box hi-orange"><strong style="color:#c2410c">📋 API Lô / PO</strong><em>Nhập mã theo lô từ Merchant · Garena, CGV, Vincom...</em></div>
+        <div class="box hi-orange"><strong style="color:#c2410c">📤 Tự up code</strong><em>Merchant upload file mã · Import vào kho</em></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arr">↓<span>Lưu mã / Trừ stock</span></div>
+
+  <!-- LAYER 8: INVENTORY -->
+  <div class="layer ly-green" id="L8">
+    <div class="layer-head"><div class="lnum">8</div>INVENTORY LAYER — Tầng kho & Giá vốn</div>
+    <div class="layer-body">
+      <div class="boxes">
+        <div class="box hi-green" data-detail="inventory-mgmt">
+          <strong style="color:#15803d">🏭 QUẢN LÝ KHO</strong>
+          <em>• ID Kho · Code stock · COST (Giá vốn / COGS)<br>• Tồn kho realtime · Low-stock alert<br>• Xuất kho mã lưu sẵn (In-house Stock Code)</em>
         </div>
-        <div class="note">✓ Điểm trừ ngay tại tầng 2 · Nhưng đơn CHƯA hoàn tất — đây là quà nhóm (B), khác với voucher/mã lấy ngay (nhóm A)</div>
+        <div class="box hi-teal" data-detail="kho-code">
+          <strong style="color:#0f766e">🗄 KHO CODE (codex)</strong>
+          <em>• Mã code, Giá trị sử dụng, Serial, PIN<br>• Trạng thái: 111=READY · 210=ISSUED · 300=USED<br>• transaction_id → link về Gateway TXN</em>
+        </div>
+        <div class="box hi-blue">
+          <strong style="color:#1d4ed8">📉 Trừ stock</strong>
+          <em>Redis LPOP (atomic) · MySQL update process<br>• WhoExport=0: nhập sẵn · =1: UB tự sinh · =2: API realtime</em>
         </div>
       </div>
-      <div class="layer-arr">↓<span>2-3 ngày sau · GHTK gọi webhook riêng về UrCard</span></div>
-      <div class="layer" style="border-color:#7dd3fc">
-        <div class="layer-head" style="background:#e0f2fe;color:#0369a1;border-bottom:1px solid #bae6fd"><div class="layer-num" style="background:#0369a1;color:#fff">6</div>Webhook Callback — GHTK báo trạng thái giao hàng</div>
-        <div class="layer-body"><div class="g3">
-          <div class="box" style="border-color:#7dd3fc;background:#f0f9ff"><strong style="color:#0369a1">🔗 POST /v1/webhooks/delivery-status</strong><em>ref_id=GHTK-2024-88201 · status=DELIVERED · Mai đã ký nhận</em></div>
-          <div class="box" style="border-color:#86efac;background:#f0fdf4"><strong style="color:#15803d">✅ UrCard tra externalRef → cập nhật Order</strong><em>ORD-20240125-5501: AWAITING_CALLBACK → COMPLETED</em></div>
-          <div class="box" style="border-color:#fca5a5;background:#fef2f2"><strong style="color:#dc2626">⚠️ Nếu status=FAILED_DELIVERY thay vì DELIVERED</strong><em>UrCard hoàn điểm: balance + 80.000 · Order → FAILED</em></div>
-        </div>
-        <div class="good">✓ Nếu quá callbackDeadline (5 ngày) mà GHTK không gọi webhook → timeoutPolicy=MANUAL_HOLD → cronjob chỉ cảnh báo Ops, không tự hoàn điểm (vì hàng có thể vẫn đang giao)</div>
-        </div>
+    </div>
+  </div>
+
+  <div class="arr">↓<span>Lấy mã từ Provider / Aggregator</span></div>
+
+  <!-- LAYER 9: PROVIDER -->
+  <div class="layer ly-gray" id="L9">
+    <div class="layer-head"><div class="lnum">9</div>PROVIDER SERVER / AGGREGATORS — Bên ngoài UrBox</div>
+    <div class="layer-body">
+      <div class="boxes">
+        <div class="box"><strong>🌏 Global Aggregators</strong><em>Voucher SEA Markets · Nhiều thị trường · Dragonpass, Fasttrack...</em></div>
+        <div class="box"><strong>🏠 Domestic Merchants</strong><em>Nhà cung cấp trực tiếp tại VN · Grab, Shopee, Garena, CGV, Vincom...</em></div>
+        <div class="box"><strong>📡 API Callback</strong><em>Provider gọi webhook về UrBox khi hoàn tất · status=SUCCESS/FAILED</em></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /arch0 -->
+</div><!-- /view0 -->
+
+<!-- ═══════════════ VIEW 1: LUỒNG THEO LOẠI QUÀ ═══════════════ -->
+<div class="view" id="view1">
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="gtBtns">
+    <button class="btn primary" onclick="showGt(0)">💳 Topup đối tác</button>
+    <button class="btn" onclick="showGt(1)">📅 Quà Booking</button>
+    <button class="btn" onclick="showGt(2)">🎫 E-Voucher UrBox</button>
+    <button class="btn" onclick="showGt(3)">🗂 E-Voucher đối tác</button>
+    <button class="btn" onclick="showGt(4)">📦 Quà vật lý</button>
+    <button class="btn" onclick="showGt(5)">🔄 Quà lượt/điểm</button>
+  </div>
+
+  <div id="gtFlows">
+
+  <!-- GT0: Topup đối tác -->
+  <div class="gt-flow" id="gt0" style="display:block"><div class="arch">
+    <div class="layer ly-slate"><div class="layer-head"><div class="lnum">1</div>Business Channel — User yêu cầu nạp điện thoại</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-blue"><strong style="color:#1d4ed8">👤 User</strong><em>Chọn "Nạp 50k Viettel" · Nhập SĐT · Bấm xác nhận</em></div>
+      <div class="box hi-blue"><strong style="color:#1d4ed8">📡 API Gateway</strong><em>giftDetailId: GD-VIETTEL-50K-001 · siteUserId · idempotencyKey</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — Tạo Transaction</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-violet"><strong style="color:#7c3aed">📝 Tạo TXN</strong><em>TXN-001 · type: TOPUP_DIRECT · flow: REDEEM · status: PROCESSING · <strong style="color:#dc2626">Không tạo Order</strong></em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-green"><div class="layer-head"><div class="lnum">5</div>UrCard Core — Trừ điểm trước (deduct-first)</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">① DEBIT balance</strong><em>balance: 200k → 150k · card_ledger entry: ref_txn_id=TXN-001</em></div>
+      <div class="box hi-red"><strong style="color:#dc2626">⚠ Nếu fail</strong><em>CREDIT entry hoàn lại · TXN → FAILED</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-teal"><div class="layer-head"><div class="lnum">6</div>Rewards Core — Route: TOPUP_DIRECT</div>
+    <div class="layer-body">
+      <div class="info">output_type = TOPUP_DIRECT → Gọi API nhà mạng · Không phát mã code</div>
+    </div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-orange"><div class="layer-head"><div class="lnum">7</div>Merchant Connector — Gọi API Viettel</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-orange"><strong style="color:#c2410c">⚡ API Realtime</strong><em>POST api.viettel.vn/topup · phone=0912xxx · amount=50000 · ref=TXN-001</em></div>
+      <div class="box hi-orange"><strong style="color:#c2410c">📲 Viettel tiếp nhận</strong><em>trans_id: VTL-88821 · status: PROCESSING · Webhook kết quả sau</em></div>
+    </div></div></div>
+    <div class="arr">↓<span>Webhook callback ~vài giây</span></div>
+    <div class="layer ly-gray"><div class="layer-head"><div class="lnum">8</div>Tầng kho — Bỏ qua (không có mã)</div>
+    <div class="layer-body">
+      <div class="box hi-gray"><strong style="color:#94a3b8">⊘ Không codex record</strong><em>Viettel ghi nhận nội bộ · Không có mã trung gian</em></div>
+    </div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — Webhook callback → COMPLETED</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">✅ TXN-001 → COMPLETED</strong><em>Không có order · Điểm đã trừ · User nhận SMS xác nhận</em></div>
+    </div></div></div>
+  </div></div>
+
+  <!-- GT1: Quà Booking -->
+  <div class="gt-flow" id="gt1" style="display:none"><div class="arch">
+    <div class="layer ly-slate"><div class="layer-head"><div class="lnum">1</div>Business Channel — User đặt phòng chờ DragonPass</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-blue"><strong style="color:#1d4ed8">👤 User</strong><em>Chọn "Phòng chờ Plaza Premium HAN" · Ngày 15/06 · lounge_quota: 2</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — Tạo Transaction + Order</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-violet"><strong style="color:#7c3aed">📝 TXN + Order</strong><em>TXN-002 · ORD-002 · type: PAYMENT · flow: REDEEM · PROCESSING</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-green"><div class="layer-head"><div class="lnum">5</div>UrCard Core — Trừ lượt trước</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">① DEBIT quota</strong><em>lounge_quota: 2→1 · card_ledger: DEBIT_QUOTA · ref_txn_id=TXN-002</em></div>
+      <div class="box hi-red"><strong style="color:#dc2626">⚠ Nếu Booking fail</strong><em>CREDIT_QUOTA hoàn lại · TXN+Order → FAILED</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-teal"><div class="layer-head"><div class="lnum">6</div>Rewards Core — Route: BOOKING</div>
+    <div class="layer-body"><div class="info">output_type = BOOKING → Gọi DragonPass API đặt chỗ realtime</div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-orange"><div class="layer-head"><div class="lnum">7</div>Merchant Connector — Gọi DragonPass API</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-orange"><strong style="color:#c2410c">⚡ API Realtime</strong><em>POST api.dragonpass.com/lounge/book · lounge_id=HAN-T2 · date=15/06 · ref=TXN-002</em></div>
+      <div class="box hi-green"><strong style="color:#15803d">✅ DragonPass xác nhận</strong><em>booking_ref=DP-88201 · QR code · Slot confirmed</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-green"><div class="layer-head"><div class="lnum">8</div>Inventory — Lưu booking ref vào codex</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-teal"><strong style="color:#0f766e">📋 codex record</strong><em>code=DP-88201 · WhoExport=2 · process=210 · transaction_id=TXN-002</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — COMPLETED</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">✅ TXN-002 + ORD-002 → COMPLETED</strong><em>User nhận QR booking trong App</em></div>
+    </div></div></div>
+  </div></div>
+
+  <!-- GT2: E-Voucher UrBox -->
+  <div class="gt-flow" id="gt2" style="display:none"><div class="arch">
+    <div class="layer ly-slate"><div class="layer-head"><div class="lnum">1</div>Business Channel — User đổi điểm lấy CashVoucher UrBox</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-blue"><strong style="color:#1d4ed8">👤 User</strong><em>Chọn "Voucher giảm giá UrBox 60k" · 60.000 điểm</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — Tạo TXN + Order</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-violet"><strong style="color:#7c3aed">📝 TXN-003 + ORD-003</strong><em>type: PAYMENT · flow: REDEEM · PROCESSING</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-green"><div class="layer-head"><div class="lnum">5</div>UrCard Core — Trừ điểm</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">① DEBIT balance</strong><em>balance: 90k→30k · card_ledger: DEBIT_BALANCE · ref_txn_id=TXN-003</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-teal"><div class="layer-head"><div class="lnum">6</div>Rewards Core — Route: E-Voucher UrBox tự sinh</div>
+    <div class="layer-body"><div class="info">output_type = CASHVOUCHER → UrBox tự sinh mã theo prefix + pattern · WhoExport=1</div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-orange"><div class="layer-head"><div class="lnum">7</div>Merchant Connector — Không cần (tự sinh)</div>
+    <div class="layer-body"><div class="box hi-gray"><strong style="color:#94a3b8">⊘ Không gọi API ngoài</strong><em>UrBox tự sinh mã nội bộ · Không phụ thuộc Merchant</em></div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-green"><div class="layer-head"><div class="lnum">8</div>Inventory — Sinh mã + lưu codex</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">🎟 Sinh mã UBV-K7Q2-M9R4</strong><em>WhoExport=1 · process=210 · transaction_id=TXN-003</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — COMPLETED</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">✅ TXN-003 + ORD-003 → COMPLETED</strong><em>User nhận mã UBV-K7Q2-M9R4 trong App</em></div>
+    </div></div></div>
+  </div></div>
+
+  <!-- GT3: E-Voucher đối tác -->
+  <div class="gt-flow" id="gt3" style="display:none"><div class="arch">
+    <div class="layer ly-slate"><div class="layer-head"><div class="lnum">1</div>Business Channel — User đổi điểm lấy Voucher Grab</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-blue"><strong style="color:#1d4ed8">👤 User</strong><em>Chọn "Voucher Grab 50k" · 30.000 điểm</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — Tạo TXN + Order</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-violet"><strong style="color:#7c3aed">📝 TXN-004 + ORD-004</strong><em>type: PAYMENT · flow: REDEEM</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-green"><div class="layer-head"><div class="lnum">5</div>UrCard Core — Trừ điểm</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">① DEBIT balance</strong><em>50k→20k · ref_txn_id=TXN-004</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-teal"><div class="layer-head"><div class="lnum">6</div>Rewards Core — Route: E-Voucher đối tác</div>
+    <div class="layer-body"><div class="info">output_type = EVOUCHER_PARTNER → Kiểm tra Redis pool → nếu còn mã lấy luôn, nếu hết gọi API Grab</div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-orange"><div class="layer-head"><div class="lnum">7</div>Merchant Connector — Lấy mã từ kho hoặc API</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-teal"><strong style="color:#0f766e">✅ Redis hit</strong><em>LPOP pool GRAB-50K → GRAB-XKQP-7291 · ~1ms</em></div>
+      <div class="box hi-orange"><strong style="color:#c2410c">⚡ Hoặc API Grab</strong><em>Cache miss → POST api.grab.com/vouchers/issue · ref=TXN-004</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-green"><div class="layer-head"><div class="lnum">8</div>Inventory — Cập nhật codex</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-teal"><strong style="color:#0f766e">📋 codex</strong><em>code=GRAB-XKQP-7291 · WhoExport=0 or 2 · process=210 · transaction_id=TXN-004</em></div>
+      <div class="box hi-blue"><strong style="color:#1d4ed8">📉 Trừ stock</strong><em>Redis pool GRAB-50K: 63→62 · Low-stock alert nếu dưới ngưỡng</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — COMPLETED</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">✅ TXN-004 + ORD-004 → COMPLETED</strong><em>User nhận mã GRAB-XKQP-7291</em></div>
+    </div></div></div>
+  </div></div>
+
+  <!-- GT4: Quà vật lý -->
+  <div class="gt-flow" id="gt4" style="display:none"><div class="arch">
+    <div class="layer ly-slate"><div class="layer-head"><div class="lnum">1</div>Business Channel — User đổi điểm lấy hộp quà</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-blue"><strong style="color:#1d4ed8">👤 User</strong><em>Chọn "Hộp quà Tết 2024" · 80k điểm · Nhập địa chỉ giao hàng</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — Tạo TXN + Order</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-violet"><strong style="color:#7c3aed">📝 TXN-005 + ORD-005</strong><em>type: PAYMENT · shipping_address lưu trong Order</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-green"><div class="layer-head"><div class="lnum">5</div>UrCard Core — Trừ điểm</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">① DEBIT balance</strong><em>120k→40k · ref_txn_id=TXN-005</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-teal"><div class="layer-head"><div class="lnum">6</div>Rewards Core — Route: Quà vật lý</div>
+    <div class="layer-body"><div class="info">output_type = PHYSICAL → Không sinh mã · Trừ SKU tồn kho · Đẩy đơn GHTK/GHN</div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-orange"><div class="layer-head"><div class="lnum">7</div>Merchant Connector — Gọi GHTK tạo đơn ship</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-orange"><strong style="color:#c2410c">📦 Tạo đơn GHTK</strong><em>ship_order_id=GHTK-88201 · ETA: 2-3 ngày · Webhook khi giao</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-green"><div class="layer-head"><div class="lnum">8</div>Inventory — Trừ stock SKU</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">📉 Trừ tồn kho</strong><em>SKU: GIFT-BOX-TET-001 · stock: 45→44 · warehouse: HCM-01</em></div>
+    </div></div></div>
+    <div class="arr">↓<span>GHTK webhook khi giao thành công</span></div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — AWAITING_CALLBACK → COMPLETED</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-green"><strong style="color:#15803d">✅ TXN-005 + ORD-005 → COMPLETED</strong><em>Khi GHTK xác nhận giao thành công · User nhận thông báo</em></div>
+    </div></div></div>
+  </div></div>
+
+  <!-- GT5: Quà lượt/điểm -->
+  <div class="gt-flow" id="gt5" style="display:none"><div class="arch">
+    <div class="layer ly-slate"><div class="layer-head"><div class="lnum">1</div>Business Channel — Partner cộng thưởng cho user</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-blue"><strong style="color:#1d4ed8">🏦 Partner (SHB)</strong><em>giftDetailId: GD-SHB-RESORT-001 · amount: 2 lượt · idempotencyKey</em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-purple"><div class="layer-head"><div class="lnum">4</div>Entity Core — Tạo Transaction (không Order)</div>
+    <div class="layer-body"><div class="boxes">
+      <div class="box hi-violet"><strong style="color:#7c3aed">📝 TXN-006</strong><em>type: TOPUP_CATALOG · flow: CHARGE · <strong style="color:#dc2626">Không tạo Order</strong></em></div>
+    </div></div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-green"><div class="layer-head"><div class="lnum">5</div>UrCard Core — Cộng lượt thẳng vào thẻ (không xuống Rewards Core)</div>
+    <div class="layer-body">
+      <div class="info">TOPUP_CATALOG / TOPUP_BALANCE → Xử lý tại đây · Không đẩy xuống Rewards Core</div>
+      <div class="boxes">
+        <div class="box hi-green"><strong style="color:#15803d">① CREDIT quota</strong><em>resort_quota: 0→2 · card_ledger: CREDIT_QUOTA · ref_txn_id=TXN-006</em></div>
+        <div class="box hi-green"><strong style="color:#15803d">✅ TXN-006 → COMPLETED</strong><em>~0.3s · Không qua Rewards Core, Inventory, Merchant</em></div>
       </div>
     </div></div>
+    <div class="arr">↓</div>
+    <div class="layer ly-teal"><div class="layer-head"><div class="lnum">6-8</div>Rewards Core / Inventory — Bỏ qua</div>
+    <div class="layer-body"><div class="box hi-gray"><strong style="color:#94a3b8">⊘ Không đi qua các tầng này</strong><em>Không phát mã · Không kho · Lượt/điểm đã được cộng trực tiếp tại UrCard Core</em></div></div></div>
+  </div></div>
 
-<style>
-/* ── view tabs ── */
-.vtab{padding:9px 20px;font-size:12px;font-weight:700;border:none;background:none;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
-.vtab:hover{color:#1d4ed8}
-.vtab.on{color:#1d4ed8;border-bottom-color:#1d4ed8}
+  </div><!-- /gtFlows -->
+</div><!-- /view1 -->
 
-/* ── gift type overview ── */
-.gt-overview{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
-.gt-card{border:2px solid;border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s}
-.gt-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
-.gt-card.on{box-shadow:0 0 0 3px #1d4ed8, 0 4px 16px rgba(29,78,216,.2);transform:translateY(-3px)}
-.gt-icon{font-size:24px;margin-bottom:6px}
-.gt-name{font-size:11.5px;font-weight:800;margin-bottom:3px}
-.gt-desc{font-size:9.5px;margin-bottom:3px}
-.gt-eg{font-size:9px;opacity:.7}
+</div><!-- /wrap -->
 
-.gt-physical{border-color:#fdba74;background:#fff7ed;color:#9a3412}
-.gt-topup   {border-color:#bfdbfe;background:#eff6ff;color:#1e40af}
-.gt-ubcode  {border-color:#bbf7d0;background:#f0fdf4;color:#166534}
-.gt-booking {border-color:#c4b5fd;background:#f5f3ff;color:#5b21b6}
-.gt-stock   {border-color:#99f6e4;background:#f0fdfa;color:#134e4a}
-
-.gt-flow{display:none}
-.gt-flow.on{display:block}
-
-/* ── step controls ── */
-.step-bar{
-  position:sticky;bottom:0;left:0;right:0;
-  background:rgba(255,255,255,.95);backdrop-filter:blur(6px);
-  border-top:1px solid #e2e8f0;
-  padding:10px 32px;display:flex;align-items:center;gap:12px;z-index:50;
-}
-.step-btn{
-  padding:7px 18px;font-size:11.5px;font-weight:700;border-radius:8px;
-  border:1.5px solid #1d4ed8;color:#1d4ed8;background:#fff;cursor:pointer;transition:all .15s;
-}
-.step-btn:hover{background:#eff6ff}
-.step-btn:disabled{border-color:#e2e8f0;color:#cbd5e1;cursor:default;background:#f8fafc}
-.step-btn.primary{background:#1d4ed8;color:#fff}
-.step-btn.primary:hover{background:#1e40af}
-.step-dots{display:flex;gap:6px;align-items:center}
-.step-dot{width:8px;height:8px;border-radius:50%;background:#e2e8f0;transition:all .25s;cursor:pointer}
-.step-dot.on{background:#1d4ed8;width:20px;border-radius:4px}
-.step-dot.done{background:#86efac}
-.step-label{font-size:11px;color:#64748b;margin-left:4px;flex:1}
-
-/* ── layer animation states ── */
-.layer{transition:opacity .3s, box-shadow .3s, transform .2s}
-.layer.dim{opacity:.25;filter:grayscale(.5)}
-.layer.active{
-  opacity:1 !important;filter:none;
-  box-shadow:0 0 0 3px #1d4ed8, 0 4px 20px rgba(29,78,216,.18);
-  transform:translateY(-2px);
-}
-.layer.done-layer{opacity:.7;filter:none}
-
-.layer-arr{transition:opacity .3s}
-.layer-arr.dim{opacity:.15}
-.layer-arr.active-arr{opacity:1}
-
-/* data packet animation */
-.packet{
-  display:inline-block;background:#1d4ed8;color:#fff;
-  font-size:9.5px;font-weight:700;border-radius:6px;
-  padding:3px 8px;margin:2px 0;animation:packetIn .35s ease;
-  white-space:nowrap;
-}
-.packet.green{background:#15803d}
-.packet.orange{background:#c2410c}
-@keyframes packetIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-
-.layer-arr .packet-wrap{min-height:16px;margin-top:2px}
-
-/* reset btn */
-.reset-btn{
-  margin-left:auto;padding:6px 14px;font-size:11px;font-weight:600;
-  border-radius:8px;border:1.5px solid #e2e8f0;color:#64748b;background:#fff;cursor:pointer;
-}
-.reset-btn:hover{border-color:#94a3b8;color:#374151}
-</style>
-
-<!-- modal -->
+<!-- Modal -->
 <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
   <div class="modal">
-    <div class="modal-head">
-      <h3 id="modalTitle"></h3>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
+    <div class="modal-head"><h3 id="modalTitle"></h3><button class="modal-close" onclick="closeModal()">×</button></div>
     <div class="modal-body" id="modalBody"></div>
   </div>
 </div>
 
-<div class="step-bar" id="stepBar">
-  <button class="step-btn" id="btnPrev" onclick="step(-1)" disabled>← Trước</button>
-  <button class="step-btn primary" id="btnNext" onclick="step(1)">Tiếp →</button>
-  <div class="step-dots" id="stepDots"></div>
-  <div class="step-label" id="stepLabel">Nhấn "Tiếp" để xem từng bước</div>
-  <button class="reset-btn" onclick="resetSteps()">↺ Xem lại</button>
+<!-- Step bar -->
+<div id="stepBar">
+  <button class="btn" onclick="event.stopPropagation();stepNav(-1)">← Prev</button>
+  <div class="dots" id="dots"></div>
+  <div id="stepLabel"></div>
+  <button class="btn primary" onclick="event.stopPropagation();stepNav(1)" id="btnNext">Tiếp →</button>
+  <button class="btn" onclick="event.stopPropagation();resetStep()" style="font-size:10px;padding:5px 10px">↺</button>
 </div>
 
 <script>
-/* ── view switcher ── */
-function switchView(v){
-  document.querySelectorAll('.view').forEach((el,i)=>el.style.display=i===v?'block':'none');
-  document.querySelectorAll('.vtab').forEach((el,i)=>el.classList.toggle('on',i===v));
-  if(v===0) resetSteps();
-}
-
-function showGt(i,el){
-  document.querySelectorAll('.gt-flow').forEach((f,j)=>f.classList.toggle('on',i===j));
-  document.querySelectorAll('.gt-card').forEach((c,j)=>c.classList.toggle('on',i===j));
-}
-
-/* ── scenario switcher ── */
-function show(i,el){
-  document.querySelectorAll('.scn').forEach((s,j)=>s.classList.toggle('on',i===j));
-  document.querySelectorAll('.scn-btn').forEach((b,j)=>b.classList.toggle('on',i===j));
-  if(typeof resetSteps==='function') resetSteps();
-  if(typeof initBoxClicks==='function') initBoxClicks();
-}
-
-/* ── step engine ── */
-const STEPS = [
-  // labels & packets per layer index (0-based) for each scenario
-  // format: [{label, packet, packetClass}, ...]  — length = number of layers+arrows in .arch
-  // We animate .layer and .layer-arr elements in DOM order inside active .scn
-  null, // placeholder, built dynamically
-];
-
-const SCENARIO_STEPS = [
-  // ① Tạo thẻ + TOPUP_BALANCE
-  [
-    {label:'🟣 Tầng 1 — Hoàng chi tiêu lần đầu, SHB ghi nhận điều kiện nhận 50.000 điểm', pkt:'campaign=SHB-PLATINUM-2024 · siteUserId=SHB-HN-00281', cls:''},
-    {label:'🔵 Tầng 2 — UrCard Core: Không thấy thẻ → Tạo CARD-SHB-00281 + tạo đơn POM', pkt:'TOPUP_BALANCE · amount=50.000 · card_id=CARD-SHB-00281 · COMPLETED', cls:'green'},
-    {label:'🟢 Tầng 3 — Bỏ qua (TOPUP_BALANCE xử lý xong tại tầng bán hàng)', pkt:null},
-    {label:'🩵 Tầng 4 — Bỏ qua (không có kho mã cần lấy)', pkt:null},
-    {label:'🟠 Tầng 5 — SHB App thông báo Hoàng: thẻ mới + 50.000 điểm', pkt:'✓ Thẻ CARD-SHB-00281 · 50.000 điểm · ~0.8s', cls:'orange'},
-  ],
-  // ② TOPUP_CATALOG
-  [
-    {label:'🟣 Tầng 1 — SHB batch job đầu năm, cộng lượt cho tất cả Platinum', pkt:'campaign=SHB-PLATINUM-2024 · siteUserId=SHB-HN-00281', cls:''},
-    {label:'🔵 Tầng 2 — UrCard Core: Tìm thẻ → TOPUP_CATALOG → cộng 2 resort + 1 lounge vào thẻ', pkt:'TOPUP_CATALOG · resort_quota: 0→2 · lounge_quota: 0→1 · COMPLETED', cls:'green'},
-    {label:'🟢 Tầng 3 — Bỏ qua (TOPUP_CATALOG xử lý xong tại tầng bán hàng)', pkt:null},
-    {label:'🩵 Tầng 4 — Bỏ qua (không có kho mã cần lấy)', pkt:null},
-    {label:'🟠 Tầng 5 — Hoàng nhận push: "2 lượt resort + 1 lượt phòng chờ"', pkt:'✓ resort×2 · lounge×1 · ~0.3s', cls:'orange'},
-  ],
-  // ③ Grab API
-  [
-    {label:'🟣 Tầng 1 — Hoàng chọn Voucher Grab 50k, bấm Đổi ngay', pkt:'siteUserId=SHB-HN-00281 · product=GRAB-50K · qty=1', cls:''},
-    {label:'🔵 Tầng 2 — UrCard Core: Kiểm tra số dư 50.000đ ✓ → Tạo đơn POM #ORD-20240712-9921', pkt:'product_id=GRAB-50K · qty=1 · giá=30.000đ · PENDING', cls:''},
-    {label:'🟢 Tầng 3 — Inventory: product GRAB-50K → Code nhập kho, WhoExport=2 (API Grab)', pkt:'WhoExport=2 · api_id=GRAB_VN_001 → gọi API realtime', cls:''},
-    {label:'🩵 Tầng 4 — Redis miss → Gọi Grab API → Nhận GRAB-XKQP-7291 → Lưu codex', pkt:'code=GRAB-XKQP-7291 · process=210 (ISSUED) · codex id=88821', cls:'green'},
-    {label:'🟠 Tầng 5 — Trừ 30.000đ, còn 20.000đ · Hoàng thấy mã GRAB-XKQP-7291 trên App', pkt:'✓ balance: 50k→20k · code=GRAB-XKQP-7291 · ~1.2s', cls:'orange'},
-  ],
-  // ④ Resort
-  [
-    {label:'🟣 Tầng 1 — Hoàng vào "Đặc quyền", chọn UB Resort Đà Nẵng, bấm Dùng 1 lượt', pkt:'siteUserId=SHB-HN-00281 · product=RESORT-UBDN-1N · resort_quota=2', cls:''},
-    {label:'🔵 Tầng 2 — UrCard Core: Kiểm tra resort_quota=2 ✓ → Tạm trừ 1 → Tạo đơn POM', pkt:'product_id=RESORT-UBDN-1N · qty=1 · PENDING', cls:''},
-    {label:'🟢 Tầng 3 — Inventory: product RESORT-UBDN-1N → Code nhập kho, WhoExport=1 (UB tự sinh)', pkt:'WhoExport=1 → pop từ Redis pool RESORT-UBDN-1N', cls:''},
-    {label:'🩵 Tầng 4 — Redis hit → Pop UB-RESORT-BK-X91K → codex process 111→210', pkt:'code=UB-RESORT-BK-X91K · process=210 · còn 14 mã trong Redis', cls:'green'},
-    {label:'🟠 Tầng 5 — resort_quota: 2→1 · Hoàng thấy mã booking, quét QR tại lễ tân', pkt:'✓ resort_quota=1 · code=UB-RESORT-BK-X91K · ~0.4s (Redis hit)', cls:'orange'},
-  ],
-  // ⑤ B2B batch
-  [
-    {label:'🟣 Tầng 1 — Techcombank gọi API: phát 50 voucher Shopee 100k cho nhân viên', pkt:'partner_id=TCB-001 · product=SHOPEE-100K · qty=50', cls:''},
-    {label:'🔵 Tầng 2 — UrCard Core: Xác thực API Key ✓ → Tạo 50 sub-orders · giá B2B 80k/voucher', pkt:'#ORD-B2B-20240720-TCB-001 · qty=50 · tổng=4.000.000đ · PENDING', cls:''},
-    {label:'🟢 Tầng 3 — Inventory: SHOPEE-100K → Code nhập kho, WhoExport=0 (nhập sẵn Shopee)', pkt:'Redis pool SHOPEE-100K còn 63 mã → batch pop 50', cls:''},
-    {label:'🩵 Tầng 4 — Batch pop 50 mã · codex 50 records: 111→210 · Còn 13 → Low-stock alert', pkt:'SHOPEE-A001…A050 · process=210 · ⚠️ tồn kho=13 < ngưỡng 20', cls:'green'},
-    {label:'🟠 Tầng 5 — Webhook trả 50 mã về TCB · TCB phát qua email/Zalo cho nhân viên', pkt:'✓ 50 voucher giao thành công · cảnh báo Ops nhập thêm · ~2.1s', cls:'orange'},
-  ],
-];
-
-let curScn = 0;
-let curStep = -1; // -1 = initial (nothing highlighted)
-
-function getActiveLayers(){
-  const scn = document.querySelector('.scn.on');
-  if(!scn) return {layers:[], arrows:[]};
-  const layers = [...scn.querySelectorAll('.layer:not(.layer .layer)')]; // top-level layers only
-  const arrows = [...scn.querySelectorAll('.layer-arr')];
-  return {layers, arrows};
-}
-
-function getScnIndex(){
-  let idx=0;
-  document.querySelectorAll('.scn').forEach((s,i)=>{ if(s.classList.contains('on')) idx=i; });
-  return idx;
-}
-
-function buildDots(total){
-  const d = document.getElementById('stepDots');
-  d.innerHTML='';
-  for(let i=0;i<total;i++){
-    const dot=document.createElement('div');
-    dot.className='step-dot';
-    dot.onclick=()=>jumpTo(i);
-    d.appendChild(dot);
-  }
-}
-
-function updateDots(cur, total){
-  document.querySelectorAll('.step-dot').forEach((d,i)=>{
-    d.classList.toggle('on', i===cur);
-    d.classList.toggle('done', i<cur);
-  });
-}
-
-function applyStep(scnIdx, stepIdx){
-  const {layers, arrows} = getActiveLayers();
-  const steps = SCENARIO_STEPS[scnIdx];
-  const total = steps.length;
-
-  layers.forEach((l,i)=>{
-    l.classList.remove('dim','active','done-layer');
-    if(stepIdx<0){ return; }
-    if(i===stepIdx) l.classList.add('active');
-    else if(i<stepIdx) l.classList.add('done-layer');
-    else l.classList.add('dim');
-  });
-
-  arrows.forEach((a,i)=>{
-    a.classList.remove('dim','active-arr');
-    // clear old packets
-    const pw = a.querySelector('.packet-wrap');
-    if(pw) pw.remove();
-
-    if(stepIdx<0){ return; }
-    if(i<stepIdx){
-      a.classList.add('active-arr');
-      // show packet for the transition (arrow i leads to layer i+1)
-      const pkt = steps[i]?.pkt;
-      if(pkt){
-        const wrap=document.createElement('div');
-        wrap.className='packet-wrap';
-        const span=document.createElement('span');
-        span.className='packet '+(steps[i]?.cls||'');
-        span.textContent=pkt;
-        wrap.appendChild(span);
-        a.appendChild(wrap);
-      }
-    } else {
-      a.classList.add('dim');
-    }
-  });
-
-  // label
-  const label = document.getElementById('stepLabel');
-  if(stepIdx<0) label.textContent='Nhấn "Tiếp" để xem từng bước';
-  else label.textContent = steps[stepIdx]?.label || '';
-
-  // buttons
-  document.getElementById('btnPrev').disabled = stepIdx<=0;
-  document.getElementById('btnNext').disabled = stepIdx>=total-1;
-  if(stepIdx>=total-1){
-    document.getElementById('btnNext').textContent='✓ Xong';
-    document.getElementById('btnNext').classList.remove('primary');
-  } else {
-    document.getElementById('btnNext').textContent='Tiếp →';
-    document.getElementById('btnNext').classList.add('primary');
-  }
-
-  updateDots(stepIdx, total);
-}
-
-function step(dir){
-  const scnIdx = getScnIndex();
-  const total = SCENARIO_STEPS[scnIdx].length;
-  curStep = Math.max(-1, Math.min(total-1, curStep+dir));
-  applyStep(scnIdx, curStep);
-}
-
-function jumpTo(i){
-  curStep = i;
-  applyStep(getScnIndex(), curStep);
-}
-
-function resetSteps(){
-  const scnIdx = getScnIndex();
-  buildDots(SCENARIO_STEPS[scnIdx].length);
-  curStep = 0; // bắt đầu từ step 1 (tầng 1)
-  applyStep(scnIdx, 0);
-  document.getElementById('btnNext').textContent='Tiếp →';
-  document.getElementById('btnNext').classList.add('primary');
-}
-
-
-// init — chạy sau khi tất cả function đã định nghĩa xong
-
-/* ── modal detail data ── */
+// ─── DETAILS ───────────────────────────────────────────────
 const DETAILS = {
-  'create-card': {
-    title: 'Tạo thẻ mới — UrCard Core',
-    sections: [
-      { head: 'Logic xử lý', tags: ['TOPUP_BALANCE','auto-create','transaction'] },
-      { head: 'Lookup thẻ theo (campaign, siteUserId)', pre:
-`SELECT * FROM cards
-WHERE campaign = 'SHB-PLATINUM-2024'
-  AND site_user_id = 'SHB-HN-00281'
-LIMIT 1;
--- Result: 0 rows → trigger tạo thẻ mới` },
-      { head: 'Tạo thẻ + đơn trong cùng transaction', pre:
-`BEGIN;
-  INSERT INTO cards (card_id, campaign, site_user_id, status, created_at)
-  VALUES ('CARD-SHB-00281','SHB-PLATINUM-2024','SHB-HN-00281','ACTIVE', NOW());
-
-  INSERT INTO orders (order_id, card_id, product_id, amount, status)
-  VALUES ('ORD-20240115-0001','CARD-SHB-00281','POINT-TOPUP', 50000,'PENDING');
-COMMIT;
--- Rollback cả hai nếu bất kỳ bước nào fail` },
-    ]
-  },
-  'topup-balance': {
-    title: 'TOPUP_BALANCE — Cộng điểm vào thẻ',
-    sections: [
-      { head: 'Flow xử lý', tags: ['TOPUP_BALANCE','UrCard Core','no-inventory'] },
-      { head: 'API Request từ SHB', pre:
-`POST /api/v1/topup
-Authorization: Bearer sk_shb_prod_xxxx
-{
-  "campaign":    "SHB-PLATINUM-2024",
-  "siteUserId":  "SHB-HN-00281",
-  "productId":   "POINT-TOPUP",
-  "amount":      50000
-}` },
-      { head: 'UrCard Core cộng điểm (không qua Inventory)', pre:
-`UPDATE cards
-SET balance = balance + 50000
-WHERE campaign = 'SHB-PLATINUM-2024'
-  AND site_user_id = 'SHB-HN-00281';
-
-UPDATE orders SET status = 'COMPLETED'
-WHERE order_id = 'ORD-20240115-0001';` },
-      { head: 'Response', pre:
-`{
-  "status":  "SUCCESS",
-  "cardId":  "CARD-SHB-00281",
-  "balance": 50000,
-  "orderId": "ORD-20240115-0001"
-}` },
-    ]
-  },
-  'topup-catalog': {
-    title: 'TOPUP_CATALOG — Cộng lượt đặc quyền',
-    sections: [
-      { head: 'Flow xử lý', tags: ['TOPUP_CATALOG','UrCard Core','no-inventory'] },
-      { head: 'API Request từ SHB batch job', pre:
-`POST /api/v1/topup-catalog
-Authorization: Bearer sk_shb_prod_xxxx
-{
-  "campaign":   "SHB-PLATINUM-2024",
-  "siteUserId": "SHB-HN-00281",
-  "items": [
-    { "productId": "CATALOG-RESORT", "qty": 2 },
-    { "productId": "CATALOG-LOUNGE", "qty": 1 }
-  ]
-}` },
-      { head: 'UrCard Core cộng lượt (không qua Inventory)', pre:
-`UPDATE card_catalog
-SET resort_quota  = resort_quota + 2,
-    lounge_quota  = lounge_quota + 1
-WHERE card_id = 'CARD-SHB-00281';
-
-UPDATE orders SET status = 'COMPLETED'
-WHERE order_id = 'ORD-20240101-BATCH-00281';` },
-      { head: 'Response', pre:
-`{
-  "status":       "SUCCESS",
-  "cardId":       "CARD-SHB-00281",
-  "resortQuota":  2,
-  "loungeQuota":  1
-}` },
-    ]
-  },
-  'pom-order': {
-    title: 'POM — Tạo đơn hàng (Order Management)',
-    sections: [
-      { head: 'Vai trò của POM', tags: ['POM','order','idempotency'] },
-      { head: 'Insert order + lock số dư', pre:
-`BEGIN;
-  -- Idempotency check
-  SELECT id FROM orders WHERE idempotency_key = 'SHB-HN-00281-GRAB-20240712';
-  -- 0 rows → tiếp tục
-
-  INSERT INTO orders (order_id, card_id, product_id, qty, price, status, idempotency_key)
-  VALUES ('ORD-20240712-9921','CARD-SHB-00281','GRAB-50K',1,30000,'PENDING',
-          'SHB-HN-00281-GRAB-20240712');
-
-  -- Tạm giữ điểm (soft lock)
-  UPDATE cards SET balance_hold = balance_hold + 30000
-  WHERE card_id = 'CARD-SHB-00281' AND balance >= 30000;
-COMMIT;` },
-      { head: 'Cấu trúc bảng orders', pre:
-`orders
-  order_id       VARCHAR(50) PK
-  card_id        VARCHAR(50) FK → cards
-  product_id     VARCHAR(50)
-  qty            INT
-  price          BIGINT          -- đơn vị: điểm hoặc đồng
-  status         ENUM(PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED)
-  idempotency_key VARCHAR(100) UNIQUE
-  created_at     DATETIME
-  completed_at   DATETIME` },
-    ]
-  },
-  'grab-api': {
-    title: 'Grab API Realtime — Lấy mã voucher',
-    sections: [
-      { head: 'Config trong Inventory', tags: ['WhoExport=2','API realtime','Grab'] },
-      { head: 'Redis miss → Gọi Grab API', pre:
-`-- 1. Kiểm tra Redis
-LLEN inventory:GRAB-50K  -- = 0 → cache miss
-
--- 2. Đọc config product
-SELECT api_endpoint, api_key, api_secret
-FROM product_config WHERE product_id = 'GRAB-50K';
--- api_endpoint: https://api.grab.com/v2/vouchers/issue` },
-      { head: 'HTTP Request tới Grab', pre:
-`POST https://api.grab.com/v2/vouchers/issue
-Authorization: Bearer grab_api_key_prod
-Content-Type: application/json
-{
-  "amount":      50000,
-  "currency":    "VND",
-  "ref":         "ORD-20240712-9921",
-  "expiry_days": 60
-}` },
-      { head: 'Grab Response + lưu codex', pre:
-`// Grab trả về:
-{
-  "code":       "GRAB-XKQP-7291",
-  "serial":     "GRB2024071200281",
-  "expired_at": "2024-08-30T23:59:59Z"
-}
-
-// Lưu vào MySQL codex:
-INSERT INTO codex (code, serial, product_id, who_export, process, transaction_id)
-VALUES ('GRAB-XKQP-7291','GRB2024071200281','GRAB-50K', 2, 210,'ORD-20240712-9921');` },
-    ]
-  },
-  'redis-pop': {
-    title: 'Redis Pop — Lấy mã từ kho đệm',
-    sections: [
-      { head: 'Cơ chế kho mã', tags: ['WhoExport=1','Redis','codex','MySQL'] },
-      { head: 'Pop mã từ Redis pool', pre:
-`-- Redis command
-LPOP inventory:RESORT-UBDN-1N
--- Returns: "UB-RESORT-BK-X91K"
-
--- Kiểm tra tồn kho còn lại
-LLEN inventory:RESORT-UBDN-1N
--- Returns: 14  (nếu < threshold → trigger low-stock alert)` },
-      { head: 'Cập nhật codex trong MySQL', pre:
-`UPDATE codex
-SET process        = 210,          -- 111=READY → 210=ISSUED
-    transaction_id = 'ORD-20240715-0044',
-    issued_at      = NOW()
-WHERE code = 'UB-RESORT-BK-X91K'
-  AND process = 111;               -- optimistic lock` },
-      { head: 'Cấu trúc codex table', pre:
-`codex
-  id             BIGINT PK AUTO_INCREMENT
-  code           VARCHAR(100) UNIQUE
-  serial         VARCHAR(100)
-  product_id     VARCHAR(50)
-  who_export     TINYINT   -- 0=nhập sẵn, 1=UB tự sinh, 2=API đối tác
-  process        SMALLINT  -- 111=READY, 210=ISSUED, 300=USED
-  transaction_id VARCHAR(50)
-  issued_at      DATETIME
-  used_at        DATETIME` },
-    ]
-  },
-  'batch-pop': {
-    title: 'Batch Pop 50 mã — B2B Techcombank',
-    sections: [
-      { head: 'Cơ chế', tags: ['WhoExport=0','batch','Redis pipeline','low-stock'] },
-      { head: 'Redis pipeline pop 50 mã', pre:
-`-- Atomic batch pop bằng Redis pipeline
-MULTI
-  LRANGE inventory:SHOPEE-100K 0 49   -- lấy 50 mã
-  LTRIM  inventory:SHOPEE-100K 50 -1  -- xóa 50 mã đã lấy
-EXEC
-
--- Check tồn kho sau
-LLEN inventory:SHOPEE-100K  -- = 13 < threshold(20) → alert!` },
-      { head: 'Bulk update codex (50 records)', pre:
-`UPDATE codex
-SET process        = 210,
-    transaction_id = 'ORD-B2B-20240720-TCB-001',
-    issued_at      = NOW()
-WHERE code IN ('SHOPEE-A001','SHOPEE-A002', ... ,'SHOPEE-A050')
-  AND process = 111;` },
-      { head: 'Low-stock alert', pre:
-`// Gửi email cảnh báo Ops
-{
-  "to":      "ops@urbox.vn",
-  "subject": "[LOW STOCK] SHOPEE-100K còn 13 mã",
-  "body":    "Product SHOPEE-100K: 13 mã còn lại, dưới ngưỡng 20.
-              Vui lòng nhập thêm mã trước 18:00 hôm nay."
-}` },
-    ]
-  },
-  'deduct-balance': {
-    title: 'Trừ điểm — Tầng bán hàng (trước khi gọi Inventory)',
-    sections: [
-      { head: 'Flow', tags: ['trừ-trước','rollback-nếu-fail','balance','atomic'] },
-      { head: '① Trừ điểm ngay khi tạo đơn (tầng 2)', pre:
-`BEGIN;
-  -- Trừ điểm trước
-  UPDATE cards
-  SET balance = balance - 30000
-  WHERE card_id = 'CARD-SHB-00281'
-    AND balance >= 30000;     -- guard: fail nếu không đủ điểm
-
-  -- Tạo đơn trạng thái PROCESSING
-  INSERT INTO orders (order_id, card_id, product_id, price, status)
-  VALUES ('ORD-20240712-9921','CARD-SHB-00281','GRAB-50K',30000,'PROCESSING');
-COMMIT;
--- balance: 50000 → 20000` },
-      { head: '② Nếu Inventory fail → hoàn điểm (rollback)', pre:
-`-- Inventory trả lỗi (Grab API timeout, hết mã, etc.)
-BEGIN;
-  UPDATE cards
-  SET balance = balance + 30000
-  WHERE card_id = 'CARD-SHB-00281';
-
-  UPDATE orders SET status = 'FAILED'
-  WHERE order_id = 'ORD-20240712-9921';
-COMMIT;
--- balance: 20000 → 50000 (hoàn lại)` },
-      { head: '③ Nếu Inventory thành công → COMPLETED', pre:
-`UPDATE orders
-SET status       = 'COMPLETED',
-    completed_at = NOW()
-WHERE order_id = 'ORD-20240712-9921';
--- Điểm đã trừ từ bước ① — không cần trừ lại` },
-    ]
-  },
-  'deduct-quota': {
-    title: 'Trừ lượt resort — Tầng bán hàng (trước khi gọi Inventory)',
-    sections: [
-      { head: 'Flow', tags: ['trừ-trước','rollback-nếu-fail','catalog','quota'] },
-      { head: '① Trừ lượt ngay khi tạo đơn (tầng 2)', pre:
-`BEGIN;
-  -- Trừ lượt trước
-  UPDATE card_catalog
-  SET resort_quota = resort_quota - 1
-  WHERE card_id = 'CARD-SHB-00281'
-    AND resort_quota >= 1;    -- guard: fail nếu hết lượt
-
-  -- Tạo đơn trạng thái PROCESSING
-  INSERT INTO orders (order_id, card_id, product_id, status)
-  VALUES ('ORD-20240715-0044','CARD-SHB-00281','RESORT-UBDN-1N','PROCESSING');
-COMMIT;
--- resort_quota: 2 → 1` },
-      { head: '② Nếu Inventory fail → hoàn lượt (rollback)', pre:
-`-- Inventory trả lỗi (hết mã, timeout, etc.)
-BEGIN;
-  UPDATE card_catalog
-  SET resort_quota = resort_quota + 1
-  WHERE card_id = 'CARD-SHB-00281';
-
-  UPDATE orders SET status = 'FAILED'
-  WHERE order_id = 'ORD-20240715-0044';
-COMMIT;
--- resort_quota: 1 → 2 (hoàn lại)` },
-      { head: '③ Nếu Inventory thành công → COMPLETED', pre:
-`UPDATE orders
-SET status       = 'COMPLETED',
-    completed_at = NOW()
-WHERE order_id = 'ORD-20240715-0044';
--- Lượt đã trừ từ bước ① — không cần trừ lại` },
-    ]
-  },
-  'webhook-b2b': {
-    title: 'Webhook trả kết quả về Techcombank',
-    sections: [
-      { head: 'Cơ chế webhook', tags: ['B2B','webhook','retry'] },
-      { head: 'HTTP POST về TCB endpoint', pre:
-`POST https://api.techcombank.com.vn/ub-webhook/gift-result
-Authorization: HMAC-SHA256 <signature>
-Content-Type: application/json
-{
-  "orderId":    "ORD-B2B-20240720-TCB-001",
-  "status":     "SUCCESS",
-  "totalQty":   50,
-  "items": [
-    { "receiverId": "TCB-EMP-001", "code": "SHOPEE-A001", "expiredAt": "2024-12-31" },
-    { "receiverId": "TCB-EMP-002", "code": "SHOPEE-A002", "expiredAt": "2024-12-31" },
-    ...
-  ]
-}` },
-      { head: 'Retry policy', pre:
-`Nếu TCB không trả về HTTP 200:
-  - Retry sau: 30s → 2m → 10m → 1h → 6h
-  - Tối đa 5 lần
-  - Sau 5 lần fail → alert Ops + chuyển sang manual delivery` },
-    ]
-  },
+  'b2b': { title: 'Doanh nghiệp (B2B)', body: `<p>Partner gọi API Gateway với:</p><ul style="margin:8px 0 0 16px;font-size:11px;line-height:1.8"><li><strong>giftDetailId</strong> — loại quà cần phát</li><li><strong>siteUserId</strong> — ID user phía partner</li><li><strong>campaign</strong> — Campaign ID</li><li><strong>amount</strong> — số điểm/lượt cần cộng</li><li><strong>idempotencyKey</strong> — đảm bảo không duplicate</li></ul>` },
+  'b2c': { title: 'Khách hàng cá nhân (B2C)', body: `<p>User thao tác trên App/Website:</p><ul style="margin:8px 0 0 16px;font-size:11px;line-height:1.8"><li>Chọn quà từ catalog</li><li>Xác nhận đổi điểm/lượt</li><li>App gọi API Gateway với giftDetailId + siteUserId</li></ul>` },
+  'entity-core': { title: 'Entity Core Engine', body: `<p style="line-height:1.8">Đầu mối duy nhất nhận request từ mọi channel:</p><ul style="margin:8px 0 0 16px;font-size:11px;line-height:1.8"><li>Xác thực API Key & signature</li><li>Lookup <code>gift_detail</code> từ giftDetailId → output_type</li><li>Tạo <strong>Transaction</strong> (source of truth) với correlation_id = idempotencyKey</li><li>Tạo <strong>Order</strong> nếu PAYMENT flow</li><li>Callback kết quả về partner khi hoàn tất</li></ul>` },
+  'campaign-processing': { title: 'Campaign Processing', body: `<p style="line-height:1.8">Quản lý toàn bộ campaign lifecycle:</p><ul style="margin:8px 0 0 16px;font-size:11px;line-height:1.8"><li>Campaign ID, Giftset config</li><li>Client Budget: PO / SubPO management</li><li>Expiry date tracking</li><li>Selling Price → Markup → Doanh thu</li></ul>` },
+  'card-balance': { title: 'Thẻ lượt / Điểm', body: `<p style="line-height:1.8">Đơn vị thanh toán nội bộ:</p><ul style="margin:8px 0 0 16px;font-size:11px;line-height:1.8"><li><strong>balance</strong> — điểm tích lũy (TOPUP_BALANCE)</li><li><strong>resort_quota</strong> — lượt nghỉ resort (TOPUP_CATALOG)</li><li><strong>lounge_quota</strong> — lượt phòng chờ (TOPUP_CATALOG)</li></ul><p style="margin-top:8px;font-size:11px">Mọi thay đổi ghi vào <code>card_ledger</code> với <code>ref_txn_id</code> → link về Gateway Transaction.</p>` },
+  'merchant-connector': { title: 'Merchant Connector Engine', body: `<p style="line-height:1.8">3 cách lấy mã từ Merchant:</p><ul style="margin:8px 0 0 16px;font-size:11px;line-height:1.8"><li><strong>API Realtime</strong> — Gọi đồng bộ, lấy mã ngay (DragonPass, Grab...)</li><li><strong>API Lô / PO</strong> — Import mã theo lô từ Merchant (Garena, CGV...)</li><li><strong>Tự up code</strong> — Merchant upload file, import vào kho</li></ul>` },
+  'inventory-mgmt': { title: 'Quản lý Kho (Inventory)', body: `<p style="line-height:1.8">Quản lý tồn kho theo nhiều chiều:</p><ul style="margin:8px 0 0 16px;font-size:11px;line-height:1.8"><li><strong>ID Kho</strong> — mỗi Merchant/Product có kho riêng</li><li><strong>Cost / COGS</strong> — Giá vốn theo từng mã</li><li><strong>Stock Control</strong> — Redis pool cho realtime tracking</li><li><strong>Low-stock alert</strong> — Cảnh báo khi dưới ngưỡng</li></ul>` },
+  'kho-code': { title: 'Kho Code (codex table)', body: `<p style="line-height:1.8">Schema bảng codex:</p><ul style="margin:8px 0 0 16px;font-size:11px;line-height:1.8"><li><strong>code</strong> — mã code</li><li><strong>serial / PIN</strong> — thông tin bổ sung</li><li><strong>who_export</strong> — 0: nhập sẵn · 1: UB tự sinh · 2: API realtime</li><li><strong>process</strong> — 111: READY · 210: ISSUED · 300: USED</li><li><strong>transaction_id</strong> — ref về Gateway TXN</li></ul>` },
 };
 
-function initBoxClicks(){
-  document.querySelectorAll('.box[data-detail]').forEach(box=>{
-    box.addEventListener('click', e=>{
-      const key = box.dataset.detail;
-      const d = DETAILS[key];
-      if(!d) return;
-      openModal(d);
+// ─── MODAL ─────────────────────────────────────────────────
+function initBoxClicks() {
+  document.querySelectorAll('.box[data-detail]').forEach(b => {
+    b.addEventListener('click', e => {
+      const d = DETAILS[b.dataset.detail];
+      if (!d) return;
+      document.getElementById('modalTitle').textContent = d.title;
+      document.getElementById('modalBody').innerHTML = d.body;
+      document.getElementById('modalBg').classList.add('on');
+    });
+    b.style.cursor = 'pointer';
+    b.style.position = 'relative';
+    if (!b.querySelector('.tip')) {
+      const tip = document.createElement('span');
+      tip.className = 'tip';
+      tip.style.cssText = 'position:absolute;top:5px;right:7px;font-size:9px;color:#94a3b8';
+      tip.textContent = '↗';
+      b.appendChild(tip);
+    }
+  });
+}
+function closeModal() { document.getElementById('modalBg').classList.remove('on'); }
+
+// ─── LAYER COLLAPSE ────────────────────────────────────────
+function initCollapse() {
+  document.querySelectorAll('.layer-head').forEach(h => {
+    h.addEventListener('click', e => {
+      if (e.target.closest('.box')) return;
+      h.classList.toggle('collapsed');
+      h.nextElementSibling.classList.toggle('collapsed');
     });
   });
 }
 
-function openModal(d){
-  const bg = document.getElementById('modalBg');
-  document.getElementById('modalTitle').textContent = d.title;
-  const body = document.getElementById('modalBody');
-  body.innerHTML = '';
-  d.sections.forEach(sec=>{
-    const div = document.createElement('div');
-    div.className = 'modal-section';
-    let html = `<h4>${sec.head}</h4>`;
-    if(sec.tags) html += sec.tags.map(t=>`<span class="tag tag-blue">${t}</span>`).join('');
-    if(sec.pre)  html += `<pre>${sec.pre}</pre>`;
-    div.innerHTML = html;
-    body.appendChild(div);
-  });
-  bg.classList.add('on');
+// ─── VIEW SWITCH ───────────────────────────────────────────
+function switchView(i) {
+  document.querySelectorAll('.view').forEach((v,j) => v.classList.toggle('on', i===j));
+  document.querySelectorAll('.vtab').forEach((t,j) => t.classList.toggle('on', i===j));
+  resetStep();
+  initBoxClicks();
 }
 
-function closeModal(){
-  document.getElementById('modalBg').classList.remove('on');
+// ─── SCENARIO (view0) ──────────────────────────────────────
+const SCN_STEPS = [
+  // Scenario 0: Redeem quà
+  [
+    { label: 'Bước 1 — User gửi request qua Business Channel (B2B/B2C)', layers: ['L1'] },
+    { label: 'Bước 2 — Omni-Channel tiếp nhận (App / API / Whitelabel...)', layers: ['L2'] },
+    { label: 'Bước 3 — UrBox Portal: validate Campaign, Budget (PO/SubPO), Expiry', layers: ['L3'] },
+    { label: 'Bước 4 — Entity Core xác thực · Tạo TXN + Order', layers: ['L4'] },
+    { label: 'Bước 5 — UrCard Core: lookup giftDetail · Trừ điểm/lượt (deduct-first)', layers: ['L5'] },
+    { label: 'Bước 6 — Rewards Core: Điều hướng loại quà → route handler', layers: ['L6'] },
+    { label: 'Bước 7 — Merchant Connector: Gọi API / Lấy mã từ kho', layers: ['L7'] },
+    { label: 'Bước 8 — Merchant Connector: Gọi API lấy code', layers: ['L7'] },
+    { label: 'Bước 9 — Inventory: Lưu codex · Trừ stock', layers: ['L8'] },
+    { label: 'Bước 10 — Provider / Aggregator: Xử lý & trả code về Merchant Connector', layers: ['L9'] },
+    { label: 'Bước 11 — Entity Core COMPLETED · Trả kết quả về client', layers: ['L4'] },
+  ],
+  // Scenario 1: Charge điểm/lượt
+  [
+    { label: 'Bước 1 — Partner gửi Charge request với giftDetailId', layers: ['L1'] },
+    { label: 'Bước 2 — Omni-Channel / API Gateway tiếp nhận', layers: ['L2'] },
+    { label: 'Bước 3 — UrBox Portal: validate Campaign, Budget', layers: ['L3'] },
+    { label: 'Bước 4 — Entity Core: Tạo TXN (TOPUP_BALANCE/CATALOG · không Order)', layers: ['L4'] },
+    { label: 'Bước 5 — UrCard Core: Cộng điểm/lượt vào thẻ · Ghi card_ledger', layers: ['L5'] },
+    { label: 'Bước 6 — TXN COMPLETED · Entity Core → Omni-Channel → Client', layers: ['L4','L2','L1'] },
+  ],
+  // Scenario 2: Order code manual (Provider → Merchant Connector → Inventory → Portal)
+  [
+    { label: 'Bước 1 — Provider / Aggregator gửi code (upload file / API Lô)', layers: ['L9'] },
+    { label: 'Bước 2 — Inventory: nhận · Lưu vào codex · Cập nhật stock', layers: ['L8'] },
+    { label: 'Bước 3 — Merchant Connector validate · xác nhận nhập kho', layers: ['L7'] },
+    { label: 'Bước 4 — UrBox Portal: xác nhận kho sẵn sàng phát', layers: ['L3'] },
+  ],
+];
+
+let curScn = 0, curStep = 0, _scrolling = false;
+
+function showScn(i, el) {
+  curScn = i;
+  document.querySelectorAll('#scnBtns .btn').forEach((b,j) => b.classList.toggle('primary', i===j));
+  resetStep();
 }
 
-function initLayerCollapse(){
-  document.querySelectorAll('.layer-head').forEach(head=>{
-    head.addEventListener('click', e=>{
-      // don't collapse if user clicked a box inside (shouldn't happen but guard)
-      if(e.target.closest('.box')) return;
-      head.classList.toggle('collapsed');
-      const body = head.nextElementSibling;
-      if(body && body.classList.contains('layer-body')){
-        body.classList.toggle('collapsed');
+function getLayers() {
+  return ['L1','L2','L3','L4','L5','L6','L7','L8','L9']
+    .map(id => document.getElementById(id))
+    .filter(Boolean);
+}
+
+function applyStep(scn, step) {
+  const steps = SCN_STEPS[scn];
+  const s = steps[step];
+  const layers = getLayers();
+  const activeIds = s.layers;
+  // collect all layer IDs touched so far (visited)
+  const visitedIds = new Set();
+  for (let i = 0; i <= step; i++) steps[i].layers.forEach(id => visitedIds.add(id));
+
+  // remove old step badges
+  document.querySelectorAll('.step-badge').forEach(b => b.remove());
+
+  layers.forEach(l => {
+    const isActive = activeIds.includes(l.id);
+    const isVisited = visitedIds.has(l.id);
+    l.classList.toggle('active', isActive);
+    l.classList.toggle('visited', !isActive && isVisited);
+    l.classList.toggle('dim', !isActive && !isVisited);
+    // add step badge on active layer head
+    if (isActive) {
+      const head = l.querySelector('.layer-head');
+      const badge = document.createElement('span');
+      badge.className = 'step-badge';
+      badge.textContent = `Bước ${step+1}/${steps.length}`;
+      head.appendChild(badge);
+      if (activeIds[0] === l.id) {
+        _scrolling = true;
+        const y = l.getBoundingClientRect().top + window.scrollY - 80;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+        setTimeout(() => { _scrolling = false; }, 600);
       }
-    });
+    }
+  });
+  document.getElementById('stepLabel').textContent = s.label;
+  buildDots(steps.length, step);
+  const btnNext = document.getElementById('btnNext');
+  btnNext.textContent = step >= steps.length - 1 ? 'Hoàn tất ✓' : 'Tiếp →';
+  btnNext.disabled = step >= steps.length - 1;
+}
+
+function buildDots(total, active) {
+  const c = document.getElementById('dots');
+  c.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === active ? ' on' : '');
+    d.onclick = () => { curStep = i; applyStep(curScn, i); };
+    c.appendChild(d);
+  }
+}
+
+function stepNav(dir) {
+  const max = SCN_STEPS[curScn].length - 1;
+  curStep = Math.min(max, Math.max(0, curStep + dir));
+  console.log('stepNav: curScn=', curScn, 'curStep=', curStep, 'label=', SCN_STEPS[curScn][curStep].label, 'layers=', SCN_STEPS[curScn][curStep].layers);
+  applyStep(curScn, curStep);
+}
+
+function resetStep() {
+  curStep = 0;
+  if (document.getElementById('view0').classList.contains('on')) {
+    applyStep(curScn, 0);
+  } else {
+    buildDots(0, 0);
+    document.getElementById('stepLabel').textContent = '';
+    getLayers().forEach(l => { l.classList.remove('dim','active'); });
+  }
+}
+
+// ─── GT FLOW (view1) ───────────────────────────────────────
+function showGt(i) {
+  document.querySelectorAll('.gt-flow').forEach((f,j) => f.style.display = i===j ? 'block' : 'none');
+  document.querySelectorAll('#gtBtns .btn').forEach((b,j) => {
+    b.classList.toggle('primary', i===j);
   });
 }
 
-// close modal on Escape
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
-
-// ── boot (script is at end of body, DOM is ready) ──
-resetSteps();
+// ─── BOOT ──────────────────────────────────────────────────
+resetStep();
 initBoxClicks();
-initLayerCollapse();
-
+initCollapse();
 </script>
 </body>
 </html>
