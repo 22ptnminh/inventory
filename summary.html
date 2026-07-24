@@ -1,0 +1,3173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gift Execute Flow — Interactive Flowchart</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; color: #1e293b; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* HEADER */
+.header { background: linear-gradient(135deg, #3b82f6, #6366f1); color: white; padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.header h1 { font-size: 17px; font-weight: 700; }
+.header p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
+/* TABS */
+.tabs { display: flex; background: white; border-bottom: 2px solid #e2e8f0; padding: 0 24px; flex-shrink: 0; }
+.tab { padding: 12px 20px; font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; color: #64748b; transition: all 0.15s; }
+.tab:hover { color: #1e293b; }
+.tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+.tab.active.green { color: #10b981; border-bottom-color: #10b981; }
+
+/* MAIN LAYOUT */
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* CANVAS AREA */
+.canvas-wrap { flex: 1; overflow: auto; position: relative; background: #f8fafc; }
+.canvas-wrap svg { display: block; }
+
+/* SIDE PANEL */
+.panel { width: 420px; background: white; border-left: 1px solid #e2e8f0; overflow-y: auto; overflow-x: hidden; flex-shrink: 0; transition: width 0.2s; }
+.panel.hidden { width: 0; overflow: hidden; border: none; }
+.panel-inner { padding: 20px; min-width: 0; width: 100%; box-sizing: border-box; }
+.panel-close { position: absolute; top: 10px; right: 14px; background: none; border: none; font-size: 18px; cursor: pointer; color: #94a3b8; }
+.panel-close:hover { color: #1e293b; }
+.panel-header { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; position: relative; padding-right: 28px; }
+.panel-layer { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.panel-title { font-size: 16px; font-weight: 700; color: #1e293b; }
+.panel-desc { font-size: 13px; color: #475569; line-height: 1.6; margin-top: 6px; }
+
+.section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin: 14px 0 8px; }
+
+/* VALIDATE LIST */
+.validate-list { display: flex; flex-direction: column; gap: 6px; }
+.validate-item { display: flex; gap: 8px; font-size: 12px; color: #374151; line-height: 1.5; }
+.validate-item::before { content: '✓'; color: #6366f1; font-weight: 700; flex-shrink: 0; }
+.validate-item code { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: 11px; color: #5b21b6; }
+
+/* ERROR / SUCCESS */
+.error-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 8px 12px; margin-top: 6px; }
+.error-code { font-size: 11px; font-weight: 700; color: #b91c1c; font-family: monospace; }
+.error-desc { font-size: 11px; color: #7f1d1d; margin-top: 2px; }
+.success-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 12px; margin-top: 6px; }
+.success-code { font-size: 11px; font-weight: 700; color: #14532d; font-family: monospace; }
+.success-desc { font-size: 11px; color: #14532d; margin-top: 2px; }
+
+/* DB CARDS */
+.entity-block { margin-top: 12px; }
+.entity-name { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #7c3aed; background: #f5f3ff; border: 1px solid #e9d5ff; padding: 4px 10px; border-radius: 6px 6px 0 0; display: block; }
+.db-rows { border: 1px solid #e9d5ff; border-top: none; border-radius: 0 0 6px 6px; overflow: hidden; }
+.db-row { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; }
+.db-row:last-child { border-bottom: none; }
+.db-row.is-insert { border-left: 3px solid #22c55e; background: #f0fdf4; }
+.db-row.is-update { border-left: 3px solid #f59e0b; background: #fffbeb; }
+.db-row-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.badge-insert { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; background: #22c55e; color: white; flex-shrink: 0; }
+.badge-update { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; background: #f59e0b; color: white; flex-shrink: 0; }
+.db-row-field { font-family: monospace; font-size: 10px; color: #5b21b6; font-weight: 600; word-break: break-word; flex: 1; }
+.db-row-arrow { display: flex; align-items: center; gap: 6px; font-size: 10px; flex-wrap: wrap; }
+.db-row-from { font-family: monospace; color: #94a3b8; background: #f1f5f9; padding: 1px 5px; border-radius: 3px; }
+.db-arrow { color: #94a3b8; }
+.db-row-to { font-family: monospace; color: #047857; font-weight: 600; background: #dcfce7; padding: 1px 5px; border-radius: 3px; word-break: break-word; }
+.db-row-note { font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.4; word-break: break-word; }
+
+/* IO TAB */
+.io-block { margin-bottom: 12px; }
+.io-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+.io-label.input { color: #0369a1; }
+.io-label.output { color: #15803d; }
+.io-label.output-err { color: #b91c1c; }
+.io-pre { background: #0f172a; color: #e2e8f0; border-radius: 6px; padding: 10px 12px; font-family: monospace; font-size: 10.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow-y: auto; }
+.io-pre .k { color: #93c5fd; }   /* key */
+.io-pre .s { color: #86efac; }   /* string value */
+.io-pre .n { color: #fda4af; }   /* number */
+.io-pre .b { color: #fbbf24; }   /* bool/null */
+.io-pre .c { color: #64748b; font-style: italic; }  /* comment */
+.io-separator { border: none; border-top: 1px solid #f1f5f9; margin: 10px 0; }
+
+/* HINT */
+.hint { position: absolute; bottom: 16px; left: 16px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #64748b; box-shadow: 0 2px 8px rgba(0,0,0,0.08); pointer-events: none; }
+
+/* PANEL INNER TABS */
+.ptabs { display: flex; border-bottom: 2px solid #e2e8f0; margin: 0 -20px 16px; padding: 0 20px; gap: 0; }
+.ptab { padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: #94a3b8; transition: all 0.15s; white-space: nowrap; }
+.ptab:hover { color: #1e293b; }
+.ptab.active { color: #6366f1; border-bottom-color: #6366f1; }
+.ptab-content { display: none; }
+.ptab-content.active { display: block; }
+
+/* SCHEMA TABLE */
+.schema-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; }
+.schema-table th { background: #1e293b; color: #94a3b8; padding: 5px 8px; text-align: left; font-size: 10px; font-weight: 600; }
+.schema-table th:first-child { border-radius: 4px 0 0 0; }
+.schema-table th:last-child { border-radius: 0 4px 0 0; }
+.schema-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.schema-table tr:last-child td { border-bottom: none; }
+.schema-table tr:hover td { background: #f8fafc; }
+.schema-col-name { font-family: monospace; font-size: 11px; color: #1d4ed8; font-weight: 600; word-break: break-word; max-width: 140px; }
+.schema-col-type { font-family: monospace; font-size: 10px; color: #7c3aed; }
+.schema-col-null { font-size: 10px; color: #94a3b8; text-align: center; }
+.schema-col-note { font-size: 10px; color: #64748b; line-height: 1.4; word-break: break-word; }
+.pk-badge { display: inline-block; background: #fbbf24; color: #78350f; font-size: 9px; font-weight: 700; padding: 0 4px; border-radius: 3px; margin-left: 4px; }
+.fk-badge { display: inline-block; background: #a5b4fc; color: #3730a3; font-size: 9px; font-weight: 700; padding: 0 4px; border-radius: 3px; margin-left: 4px; }
+.schema-entity-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #7c3aed; background: #f5f3ff; border: 1px solid #e9d5ff; padding: 5px 10px; border-radius: 6px 6px 0 0; margin-top: 14px; display: flex; align-items: center; gap: 6px; }
+.schema-entity-title:first-of-type { margin-top: 0; }
+.schema-wrap { border: 1px solid #e9d5ff; border-top: none; border-radius: 0 0 6px 6px; overflow: hidden; margin-bottom: 2px; max-width: 100%; }
+.schema-table { table-layout: fixed; }
+
+/* EXAMPLE VIEW */
+.ex-layout { display: flex; flex: 1; height: 100%; overflow: hidden; }
+.ex-sidebar { width: 260px; border-right: 1px solid #e2e8f0; background: #fff; overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column; }
+.ex-sidebar-header { padding: 14px 16px 8px; border-bottom: 1px solid #f1f5f9; }
+.ex-sidebar-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
+.ex-subtab { display: flex; flex-direction: column; padding: 8px; gap: 2px; border-bottom: 1px solid #f1f5f9; }
+.ex-subtab-btn { padding: 9px 12px; border-radius: 7px; border: none; background: none; text-align: left; cursor: pointer; font-size: 13px; font-weight: 600; color: #64748b; transition: all 0.12s; }
+.ex-subtab-btn:hover { background: #f1f5f9; color: #1e293b; }
+.ex-subtab-btn.active { background: #ede9fe; color: #6366f1; }
+.ex-step-list { padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+.ex-step-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 7px; cursor: pointer; transition: background 0.1s; }
+.ex-step-item:hover { background: #f8fafc; }
+.ex-step-item.active { background: #ede9fe; }
+.ex-step-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #cbd5e1; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #94a3b8; flex-shrink: 0; margin-top: 1px; transition: all 0.15s; }
+.ex-step-item.active .ex-step-dot { background: #6366f1; border-color: #6366f1; color: #fff; }
+.ex-step-item.done .ex-step-dot { background: #22c55e; border-color: #22c55e; color: #fff; }
+.ex-step-info { flex: 1; min-width: 0; }
+.ex-step-label { font-size: 12px; font-weight: 600; color: #1e293b; line-height: 1.4; }
+.ex-step-item.active .ex-step-label { color: #6366f1; }
+.ex-step-sublabel { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+.ex-connector { width: 2px; height: 10px; background: #e2e8f0; margin: 0 auto 0 20px; }
+
+.ex-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.ex-nav-bar { display: flex; align-items: center; gap: 10px; padding: 10px 20px; background: #fff; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
+.ex-nav-btn { padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; transition: all 0.12s; }
+.ex-nav-btn:hover:not(:disabled) { border-color: #6366f1; color: #6366f1; }
+.ex-nav-btn:disabled { opacity: 0.35; cursor: default; }
+.ex-nav-btn.primary { background: #6366f1; border-color: #6366f1; color: #fff; }
+.ex-nav-btn.primary:hover { background: #4f46e5; }
+.ex-counter { font-size: 12px; color: #94a3b8; min-width: 56px; text-align: center; }
+.ex-step-title { font-size: 15px; font-weight: 700; color: #1e293b; flex: 1; }
+
+.ex-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 24px 28px; display: flex; flex-wrap: wrap; gap: 20px; align-content: flex-start; }
+.ex-col { flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+.ex-col-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; }
+
+.ex-request-box { background: #0f172a; border-radius: 8px; padding: 14px 16px; }
+.ex-request-label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.ex-request-pre { font-family: monospace; font-size: 11px; line-height: 1.6; color: #e2e8f0; white-space: pre-wrap; word-break: break-word; }
+.ex-request-pre .ek { color: #93c5fd; }
+.ex-request-pre .ev { color: #86efac; }
+.ex-request-pre .en { color: #fda4af; }
+
+.ex-db-section { }
+.ex-db-table-name { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #7c3aed; background: #f5f3ff; border: 1px solid #e9d5ff; padding: 5px 10px; border-radius: 6px 6px 0 0; }
+.ex-db-row-wrap { border: 1px solid #e9d5ff; border-top: none; border-radius: 0 0 6px 6px; overflow: hidden; }
+.ex-db-record { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+.ex-db-record:last-child { border-bottom: none; }
+.ex-db-record.is-new { border-left: 3px solid #22c55e; background: #f0fdf4; animation: flashGreen 0.5s ease; }
+.ex-db-record.is-upd { border-left: 3px solid #f59e0b; background: #fffbeb; animation: flashAmber 0.5s ease; }
+.ex-db-record.is-ctx { border-left: 3px solid #cbd5e1; background: #f8fafc; }
+@keyframes flashGreen { from { background: #bbf7d0; } to { background: #f0fdf4; } }
+@keyframes flashAmber { from { background: #fde68a; } to { background: #fffbeb; } }
+.ex-db-op-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; margin-right: 6px; }
+.ex-db-op-badge.ins { background: #22c55e; color: #fff; }
+.ex-db-op-badge.upd { background: #f59e0b; color: #fff; }
+.ex-db-op-badge.ctx { background: #94a3b8; color: #fff; }
+.ex-db-field-row { display: flex; gap: 6px; align-items: baseline; margin-top: 4px; font-size: 11px; flex-wrap: wrap; }
+.ex-db-field-key { font-family: monospace; font-size: 10px; color: #5b21b6; font-weight: 600; flex-shrink: 0; }
+.ex-db-field-sep { color: #94a3b8; }
+.ex-db-field-val { font-family: monospace; font-size: 10px; color: #0f766e; font-weight: 500; word-break: break-all; }
+.ex-db-field-val.old { color: #94a3b8; text-decoration: line-through; margin-right: 2px; }
+.ex-db-field-val.new { color: #059669; font-weight: 700; }
+.ex-note { font-size: 11px; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; line-height: 1.6; }
+.ex-note strong { color: #1e293b; }
+
+/* VALIDATE CHECKLIST */
+.ex-vld-list { display: flex; flex-direction: column; gap: 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; width: 100%; }
+.ex-vld-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border-bottom: 1px solid #f1f5f9; background: #fff; transition: background 0.2s; }
+.ex-vld-item:last-child { border-bottom: none; }
+.ex-vld-item[data-state="pending"] { background: #fff; }
+.ex-vld-item[data-state="checking"] { background: #fffbeb; }
+.ex-vld-item[data-state="pass"] { background: #f0fdf4; }
+.ex-vld-item[data-state="fail"] { background: #fef2f2; }
+.ex-vld-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; position: relative; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+.vld-pending { color: #cbd5e1; }
+.vld-checking, .vld-pass, .vld-fail { display: none; }
+.ex-vld-item[data-state="pending"] .vld-pending { display: block; }
+.ex-vld-item[data-state="pending"] .vld-checking,
+.ex-vld-item[data-state="pending"] .vld-pass,
+.ex-vld-item[data-state="pending"] .vld-fail { display: none; }
+.ex-vld-item[data-state="checking"] .vld-pending { display: none; }
+.ex-vld-item[data-state="checking"] .vld-checking { display: flex; align-items: center; }
+.ex-vld-item[data-state="pass"] .vld-pending,
+.ex-vld-item[data-state="pass"] .vld-checking { display: none; }
+.ex-vld-item[data-state="pass"] .vld-pass { display: block; color: #16a34a; font-size: 14px; }
+.ex-vld-item[data-state="fail"] .vld-pending,
+.ex-vld-item[data-state="fail"] .vld-checking { display: none; }
+.ex-vld-item[data-state="fail"] .vld-fail { display: block; color: #dc2626; font-size: 14px; }
+.vld-spinner { width: 13px; height: 13px; border: 2px solid #fde68a; border-top-color: #f59e0b; border-radius: 50%; animation: spin 0.5s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ex-vld-body { flex: 1; min-width: 0; overflow: hidden; word-break: break-word; overflow-wrap: anywhere; }
+.ex-vld-text { font-size: 12px; color: #374151; line-height: 1.5; word-break: break-word; overflow-wrap: anywhere; }
+.ex-vld-item[data-state="checking"] .ex-vld-text { color: #92400e; font-weight: 600; }
+.ex-vld-item[data-state="pass"] .ex-vld-text { color: #14532d; }
+.ex-vld-item[data-state="fail"] .ex-vld-text { color: #991b1b; }
+.ex-vld-result { font-size: 10px; font-family: monospace; color: #059669; background: #dcfce7; border-radius: 4px; padding: 2px 6px; margin-top: 4px; display: inline-block; }
+.ex-vld-item[data-state="pending"] .ex-vld-result,
+.ex-vld-item[data-state="checking"] .ex-vld-result { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Gift Execute Flow — Interactive Flowchart</h1>
+    <p>Click vào node để xem validate conditions & DB changes</p>
+  </div>
+</div>
+
+<div class="tabs" style="display:flex;align-items:center;gap:0">
+  <div class="tab active" id="tab-client-btn" onclick="switchTab('client')">🏢 API Client (B2B)</div>
+  <div class="tab" id="tab-enduser-btn" onclick="switchTab('enduser')">👤 API End-user (B2C)</div>
+  <div class="tab" id="tab-errors-btn" onclick="switchTab('errors')">🚨 Error Codes</div>
+  <div class="tab" id="tab-example-btn" onclick="switchTab('example')">🧪 Ví dụ thực tế</div>
+  <div style="flex:1"></div>
+  <button id="pres-enter" onclick="enterPresentationMode()" style="margin-right:16px;padding:6px 14px;border:1.5px solid #6366f1;background:#fff;color:#6366f1;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">▶ Trình chiếu</button>
+</div>
+
+<div id="pres-bar" style="display:none;align-items:center;gap:10px;padding:8px 20px;background:#1e293b;border-bottom:1px solid #334155;position:sticky;top:0;z-index:50">
+  <button id="pres-prev" onclick="presPrev()" disabled style="padding:5px 14px;border:1px solid #475569;background:#334155;color:#e2e8f0;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">← Trước</button>
+  <button id="pres-next" onclick="presNext()" style="padding:5px 14px;border:none;background:#6366f1;color:#fff;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">Tiếp →</button>
+  <span id="pres-counter" style="color:#94a3b8;font-size:12px;min-width:60px;text-align:center">1 / 1</span>
+  <span style="color:#475569;font-size:11px;margin-left:4px">← → để điều hướng · Esc để thoát</span>
+  <div style="flex:1"></div>
+  <button onclick="exitPresentationMode()" style="padding:5px 12px;border:1px solid #475569;background:transparent;color:#94a3b8;border-radius:6px;font-size:12px;cursor:pointer">✕ Thoát</button>
+</div>
+
+<div class="main">
+  <div class="canvas-wrap" id="canvas-wrap">
+    <svg id="flowchart"></svg>
+  </div>
+  <div class="panel hidden" id="panel">
+    <div class="panel-inner" id="panel-inner"></div>
+  </div>
+</div>
+
+<div id="error-codes-view" style="display:none;flex:1;overflow-y:auto;padding:32px 40px">
+  <div style="max-width:960px;margin:0 auto"></div>
+</div>
+
+<div id="example-view" style="display:none;flex:1;overflow:hidden;flex-direction:column"></div>
+
+<div class="hint">💡 Click vào node để xem chi tiết</div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────
+const LAYER_COLORS = {
+  client:  { bg: '#dbeafe', border: '#3b82f6', text: '#1d4ed8', label: 'Client / Channel' },
+  entity:  { bg: '#fef3c7', border: '#f59e0b', text: '#92400e', label: 'Entity Core (Gateway)' },
+  urcard:  { bg: '#ede9fe', border: '#7c3aed', text: '#5b21b6', label: 'UrCard Core' },
+  rewards: { bg: '#dcfce7', border: '#22c55e', text: '#14532d', label: 'Rewards Core' },
+  branch:  { bg: '#e0f2fe', border: '#0284c7', text: '#0c4a6e', label: 'Branch' },
+  error:   { bg: '#fee2e2', border: '#ef4444', text: '#991b1b', label: 'Error' },
+  success: { bg: '#dcfce7', border: '#22c55e', text: '#14532d', label: 'Response' },
+};
+
+// NODE: {id, label, layer, shape, detail:{desc, validates[], errors[], success, db:[]}}
+// EDGE: {from, to, label, dashed, color}
+
+// ═══════════════════════════════════════════════════════════
+// CLIENT FLOW (B2B)  POST /api/v1/client/gift/execute
+// ═══════════════════════════════════════════════════════════
+const CLIENT_FLOW = {
+  nodes: [
+    { id:'start', label:'Gửi request\nPOST /api/v1/client\n/gift/execute', layer:'client', shape:'rounded',
+      io:{
+        input:{
+          "POST":"/api/v1/client/gift/execute",
+          "headers":{
+            "Content-Type":"application/json",
+            "x-profile-id":"profile-id-của-client",
+            "x-access-token":"access-token-của-client"
+          },
+          "body":{
+            "campaignCode":"CAMP_2025_Q1",
+            "giftDetailId":"gd-uuid-topup-pts-01",
+            "requestId":"a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "partnerTransactionId":"partner-txn-abc-001",
+            "requestTime":"2025-01-01T10:00:00.000Z",
+            "siteUserId":"user-ext-12345",
+            "signature":"<RSA SHA256 PKCS1 base64 — ký toàn bộ body sau khi sort alpha, bỏ field signature>",
+            "⚠️ topup_points":"+ thêm field balance (số điểm topup)",
+            "⚠️ topup_catalog":"+ thêm field quantity (số lượt topup)",
+            "⚠️ voucher":"không gửi balance/quantity — mặc định 1 quà"
+          }
+        },
+        output_err:{
+          "statusCode":401,
+          "message":"Unauthorized — invalid profile-id/access-token or expired requestTime"
+        }
+      }
+    },
+    { id:'auth', label:'Xác thực client\n& chữ ký RSA', layer:'entity', shape:'rounded',
+      detail:{
+        desc:'Lookup client qua header, validate requestTime và xác thực chữ ký RSA payload.',
+        validates:[
+          '[B1] Header x-profile-id + x-access-token phải khớp với clients.profileId + clients.accessToken',
+          '[B1] clients.status = \'activated\' và deletedAt IS NULL',
+          '[B2] requestTime phải là ISO 8601 hợp lệ và now − requestTime ≤ 20 phút (chống replay attack)',
+          '[B3] Tách field signature ra khỏi body, sort các field còn lại theo alphabet (qs.stringify + localeCompare), ký SHA256 + RSA-PKCS1, encode base64',
+          '[B3] Verify signature bằng clients.clientPublicKey — thuật toán: RSA SHA256 PKCS1 padding',
+          '[B4] campaignCode trong payload phải nằm trong clients.campaignCode[] (whitelist)',
+        ],
+        errors:[
+          {code:'401 Unauthorized', desc:'x-profile-id / x-access-token sai hoặc client deactivated / deleted'},
+          {code:'400 Bad Request', desc:'requestTime không đúng ISO 8601 hoặc đã quá 20 phút'},
+          {code:'401 Unauthorized', desc:'Signature không hợp lệ — body bị thay đổi hoặc sai private key'},
+          {code:'403 Forbidden', desc:'campaignCode không có trong whitelist của client'},
+        ],
+      },
+      io:{
+        input:{
+          "headers":{"x-profile-id":"prf-abc123","x-access-token":"tok-xyz789"},
+          "body_before_sign":{
+            "campaignCode":"CAMP_2025_Q1",
+            "giftDetailId":"gd-uuid-topup-pts-01",
+            "requestId":"a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "requestTime":"2025-01-01T10:00:00.000Z",
+            "siteUserId":"user-ext-12345",
+            "⚠️ note":"topup_points thêm balance, topup_catalog thêm quantity, voucher không thêm gì"
+          },
+          "signature_steps":{
+            "1_sort_fields_alphabetically":"campaignCode=CAMP_2025_Q1&giftDetailId=gd-uuid-topup-pts-01&requestId=a1b2c3d4...&requestTime=2025-01-01T10%3A00%3A00.000Z&siteUserId=user-ext-12345",
+            "2_sign":"RSA SHA256 + PKCS1_PADDING bằng client private key",
+            "3_encode":"base64 → gán vào field `signature`"
+          }
+        },
+        output_err:[
+          {"statusCode":401,"message":"Unauthorized — invalid profile-id or access-token"},
+          {"statusCode":400,"message":"requestTime expired or invalid ISO 8601"},
+          {"statusCode":401,"message":"Invalid signature"}
+        ]
+      }
+    },
+    { id:'idem', label:'Ghi log & kiểm tra\ntrùng request', layer:'entity', shape:'rounded',
+      detail:{
+        desc:'Validate requestId và partnerTransactionId, INSERT vào MongoDB (client_redeem_request_logs). Unique index trên cả requestId và partnerTransactionId — duplicate key (11000) trên requestId → trả cached result; duplicate trên partnerTransactionId → 400.',
+        validates:[
+          'requestId phải là UUID hợp lệ (isUUID)',
+          'partnerTransactionId phải có trong payload (không rỗng)',
+          'INSERT vào client_redeem_request_logs — unique index trên requestId VÀ partnerTransactionId',
+          'Duplicate key (11000) trên requestId → request đã xử lý → trả content.result (idempotent)',
+          'Duplicate key (11000) trên partnerTransactionId → trùng ID đối tác → 400',
+          'reason.extraData.partnerTransactionId lưu thêm vào field reason để trace — không dùng để check duplicate',
+        ],
+        errors:[
+          {code:'400 Bad Request', desc:'requestId không phải UUID hợp lệ'},
+          {code:'400 Duplicate', desc:'partnerTransactionId đã tồn tại trong client_redeem_request_logs'},
+          {code:'200 Cached', desc:'requestId đã tồn tại — trả lại từ content.result (idempotent)'},
+        ],
+        db:[{
+          table:'client_redeem_request_logs (MongoDB — B2B riêng)',
+          rows:[{op:'insert', field:'requestId (unique), partnerTransactionId (unique), createdAt, content, reason', from:'—', to:'INSERT', note:'unique index trên requestId và partnerTransactionId; reason.extraData.partnerTransactionId lưu thêm để trace'}]
+        }]
+      },
+      io:{
+        input:{"requestId":"a1b2c3d4-e5f6-7890-abcd-ef1234567890","partnerTransactionId":"partner-txn-abc-001","campaignCode":"CAMP_2025_Q1","siteUserId":"user-ext-12345","giftDetailId":"gd-uuid-01","quantity":1},
+        output_err:{"statusCode":400,"message":"Duplicate partnerTransactionId"}
+      }
+    },
+    { id:'campaign', label:'Validate Campaign', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'Tìm campaign theo campaignCode (client gửi lên), kiểm tra còn active và thuộc đúng client.',
+        validates:[
+          'Lookup campaign theo campaignCode (field code trên bảng campaigns)',
+          'campaign.status = \'active\'',
+          'campaign.code phải thuộc clients.campaignCode[] (whitelist đã check ở bước auth)',
+        ],
+        errors:[
+          {code:'400 Campaign không tồn tại', desc:'campaignCode không tìm thấy hoặc status không phải active'},
+        ]
+      },
+      io:{
+        input:{"campaignCode":"CAMP_2025_Q1"},
+      }
+    },
+    { id:'card', label:'GetOrCreate Card\ncho end-user', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'(1) getOrCreateBySiteUserId: tìm hoặc tạo Customer theo siteUserId (⚠️ function mới — chưa có, cần implement; hiện chỉ có getOrCreate theo phone). (2) Tìm thẻ theo customerId+campaignId. (3) Nếu configMultipleCardPerPhone=true hoặc chưa có thẻ → tạo thẻ mới từ CardIssue oldest-active. Tất cả trong 1 DB transaction.',
+        validates:[
+          '⚠️ [CẦN IMPLEMENT] getOrCreateBySiteUserId({siteUserId}): lookup customers.siteUserId; tạo mới nếu chưa tồn tại',
+          'Tìm thẻ: findExistedCardAndLockCardExpired({customerId, campaignId})',
+          'Nếu card tồn tại và configMultipleCardPerPhone=false: dùng lại thẻ cũ',
+          'Nếu card.status = \'deactivated\' → lỗi 400',
+          'Nếu tạo thẻ mới: lấy CardIssue oldest-active của campaign; cardIssue.inventory phải > 0',
+          'Số thẻ: Luhn(publisher.aliasNumber + cardIssue.aliasNumber + cardAliasNumber)',
+          'Sinh cặp RSA (publicKey, secretKey), serverPaymentPassword, pinEncrypted (random)',
+          'aliasId = uuidv4(); nếu channel=LINK → sinh shortenLinkBalance',
+          'tags = []; params.is_testing từ campaign config',
+        ],
+        errors:[
+          {code:'400 Thẻ đã bị khóa', desc:'card.status = \'deactivated\''},
+          {code:'400 Không tìm thấy CardIssue', desc:'Không có đợt phát hành active cho campaign'},
+        ],
+        db:[
+          {table:'customers', rows:[{op:'upsert', field:'siteUserId, createdBy', from:'—', to:'status=\'active\'', note:'⚠️ Cần implement getOrCreateBySiteUserId — tái sử dụng pattern getOrCreate(phone) đổi key sang siteUserId'}]},
+          {table:'cards', rows:[{op:'insert', field:'customerId, campaignId, cardIssueId, designTemplateId, publisherId, number, numberEncrypted, publicKey, secretKey, serverPaymentPassword, pinEncrypted, aliasId, channel, status, expiration, createdBy, tags, params', from:'—', to:'status=\'activated\'', note:'Tạo khi chưa có thẻ hoặc configMultipleCardPerPhone=true'}]},
+          {table:'prepaid_card_tokens', rows:[{op:'insert', field:'prepaidCardId, cardIssueId, campaignId, publisherId, customerId, designTemplateId, expiration, balance, availableBalance, status, createdBy, createdAt', from:'—', to:'balance=0, availableBalance=0, status=\'activated\'', note:'Token điểm — tạo cùng transaction với card'}]},
+          {table:'catalog_card_tokens', rows:[{op:'insert', field:'catalogCardId, cardIssueId, campaignId, publisherId, customerId, designTemplateId, expiration, status, createdBy, createdAt', from:'—', to:'status=\'activated\'', note:'Token lượt — tạo cùng transaction với card'}]},
+          {table:'card_issues', rows:[{op:'update', field:'inventory', from:'N', to:'N-1', note:'Decrement inventory trong cùng transaction (guard MoreThan(0))'}]},
+          {table:'carts', rows:[{op:'insert', field:'catalogCardTokenId, products[]', from:'—', to:'products=[]', note:'Cart rỗng cho catalogCardToken'}]},
+        ]
+      },
+      io:{
+        input:{"siteUserId":"user-ext-12345","campaignId":7},
+        output_err:{"statusCode":400,"message":"Card is deactivated"}
+      }
+    },
+    { id:'giftdetail', label:'Lookup GiftDetail\n& xác định loại quà', layer:'rewards', shape:'rounded',
+      detail:{
+        desc:'Rewards Core tra cứu giftDetailId trong pool quà client, trả về type để UrCard Core định tuyến.',
+        validates:[
+          'giftDetailId tồn tại trong gift_details',
+          'giftDetail.status = \'active\' (đang bán)',
+          'giftDetail.giftsetId thuộc campaign đang xử lý',
+          'giftDetail.type trong pool client: topup_points | topup_catalog | evoucher_partner | evoucher_urbox | topup_partner | booking | physical',
+          'quantity > 0 và <= maxQuantityPerOrder (nếu có)',
+        ],
+        errors:[{code:'400 Không tìm thấy quà', desc:'giftDetailId không tồn tại, ngưng bán hoặc không thuộc campaign'}],
+      },
+      io:{
+        input:{"giftDetailId":"gd-uuid-topup-pts-01","campaignId":7},
+        output_err:{"statusCode":400,"message":"GiftDetail not found or inactive"}
+      }
+    },
+    { id:'branch', label:'Loại quà?', layer:'branch', shape:'diamond' },
+
+    // Nhánh A — Topup điểm (topup_points)
+    { id:'subpo_pts', label:'Kiểm tra &\ntrừ SubPO (điểm)', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'Kiểm tra ngân sách SubPO còn đủ và thực hiện trừ trước khi topup điểm.',
+        validates:[
+          'sub_purchase_orders.status = \'active\'',
+          'availableAmount >= giftDetail.amount × quantity',
+          'Dùng optimistic lock để tránh race condition đồng thời',
+        ],
+        errors:[{code:'400 Ngân sách SubPO không đủ', desc:'availableAmount < amount × quantity'}],
+        db:[{table:'sub_purchase_orders', rows:[{op:'update', field:'availableAmount', from:'X', to:'X − (amount × qty)', note:'Trừ ngân sách trước khi topup'}]}]
+      },
+      io:{
+        input:{"subPoId":"spo-001","amount":50000,"quantity":1},
+        output_err:{"statusCode":400,"message":"Insufficient SubPO budget"}
+      }
+    },
+    { id:'lock_pts_b', label:'Khóa prepaid token\n(isChangingBalance)', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'Đặt cờ isChangingBalance trên prepaid_card_tokens để ngăn request đồng thời thay đổi balance điểm.',
+        db:[
+          {table:'prepaid_card_tokens', rows:[{op:'update', field:'isChangingBalance', from:'false', to:'true', note:'Khóa trước khi CREDIT điểm'}]},
+        ]
+      },
+      io:{
+        input:{"prepaidCardTokenId":301},
+      }
+    },
+    { id:'records_pts', label:'Tạo bản ghi\nRequest + Transaction', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'INSERT topup_request, sau đó INSERT transaction (status=successful ngay) và topup_transaction. partnerTransactionId lưu vào reason.extraData để trace.',
+        validates:[
+          'prepaidCardToken.status = \'activated\'',
+          'prepaidCardToken.expiration >= now',
+          'amount > 0 và >= min_topup_amount (từ campaign rule)',
+        ],
+        db:[
+          {table:'topup_requests', rows:[
+            {op:'insert', field:'prepaidCardTokenId, customerId, description, status, type, amount, reason, topupBy, subPoId, params', from:'—', to:'status=\'approved\', type=\'client-topup-prepaid-card\'', note:'reason.extraData.partnerTransactionId lưu thêm để trace đối soát'},
+          ]},
+          {table:'transactions', rows:[
+            {op:'insert', field:'cardId, customerId, status, type, amount, code, params', from:'—', to:'status=\'successful\', type=\'client-topup-prepaid-card\'', note:'code = DDMMYY + 6 random digits; INSERT thẳng successful'},
+          ]},
+          {table:'topup_transactions', rows:[
+            {op:'insert', field:'transactionId, topupRequestId, prepaidCardTokenId, reason, params', from:'—', to:'—', note:'1-1 với topup_request; unique cả 2 FK'},
+          ]},
+        ]
+      },
+      io:{
+        input:{"prepaidCardTokenId":301,"customerId":501,"amount":50000,"subPoId":"spo-001","topupBy":"CLIENT_ABC","reason":{"extraData":{"partnerTransactionId":"partner-txn-abc-001"}}},
+      }
+    },
+    { id:'credit_pts', label:'CREDIT balance\n(điểm)', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'INCREMENT balance trên prepaid_card_tokens, tạo balance_double_entry_record, cập nhật expiration nếu cần.',
+        db:[
+          {table:'prepaid_card_tokens', rows:[
+            {op:'update', field:'balance, availableBalance', from:'B', to:'B + amount', note:'INCREMENT điểm'},
+            {op:'update', field:'expiration', from:'old', to:'max(old, newExpiry)', note:'Nếu expiration mới lớn hơn'},
+          ]},
+          {table:'cards', rows:[
+            {op:'update', field:'expiration', from:'old', to:'max(old, newExpiry)', note:'updateCardExpiration'},
+          ]},
+        ]
+      },
+      io:{
+        input:{"prepaidCardTokenId":301,"amount":50000,"newExpiry":"2026-12-31"},
+      }
+    },
+    { id:'done_pts', label:'Topup điểm\nthành công', layer:'success', shape:'rounded',
+      detail:{
+        desc:'Mở khóa isChangingBalance. Trả response 200 về client với kết quả topup ngay lập tức — topup B2B luôn sync, KHÔNG có callback.',
+        db:[
+          {table:'prepaid_card_tokens', rows:[{op:'update', field:'isChangingBalance', from:'true', to:'false', note:'Mở khóa'}]},
+        ],
+      },
+      io:{
+        output:{
+          "statusCode":200,
+          "data":{
+            "status":"completed",
+            "transactionId":"txn-uuid",
+            "topUpRequestId":"tpr-uuid",
+            "balance":150000
+          }
+        }
+      }
+    },
+
+    // Nhánh B — Topup lượt (topup_catalog)
+    { id:'subpo_cat', label:'Kiểm tra &\ntrừ SubPO (lượt)', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'Kiểm tra ngân sách SubPO còn đủ và thực hiện trừ trước khi topup lượt.',
+        validates:[
+          'sub_purchase_orders.status = \'active\'',
+          'availableAmount >= giftDetail.amount × quantity',
+          'Dùng optimistic lock để tránh race condition đồng thời',
+          'Nếu campaign.rule.isUsingCatalogCardExpiration=true → payload phải có expiration',
+        ],
+        errors:[{code:'400 Ngân sách SubPO không đủ', desc:'availableAmount < amount × quantity'}],
+        db:[{table:'sub_purchase_orders', rows:[{op:'update', field:'availableAmount', from:'X', to:'X − (amount × qty)', note:'Trừ ngân sách trước khi topup'}]}]
+      },
+      io:{
+        input:{"subPoId":"spo-001","amount":3,"quantity":3,"isUsingCatalogCardExpiration":false},
+        output_err:{"statusCode":400,"message":"Insufficient SubPO budget"}
+      }
+    },
+    { id:'records_cat', label:'Tạo bản ghi\nRequest + Transaction', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'INSERT topup_product_request, sau đó INSERT transaction (status=successful ngay) và topup_product_transaction. partnerTransactionId lưu vào reason.extraData để trace. Catalog token KHÔNG dùng isChangingBalance lock.',
+        validates:[
+          'catalogCardToken.status = \'activated\'',
+          'catalogCardToken.expiration >= now',
+          'isUsingCatalogCardExpiration=true → expiration phải có trong payload (400 nếu thiếu)',
+        ],
+        db:[
+          {table:'topup_product_requests', rows:[
+            {op:'insert', field:'catalogCardTokenId, customerId, description, status, type, amount, giftsetId, reason, topupBy, params', from:'—', to:'status=\'approved\', type=\'client-topup-catalog-card\'', note:'reason.extraData.partnerTransactionId lưu thêm để trace; giftsetId phân tách ngân sách'},
+          ]},
+          {table:'transactions', rows:[
+            {op:'insert', field:'cardId, customerId, status, type, amount, code, params', from:'—', to:'status=\'successful\', type=\'client-topup-catalog-card\'', note:'INSERT thẳng successful'},
+          ]},
+          {table:'topup_product_transactions', rows:[
+            {op:'insert', field:'transactionId, topupProductRequestId, catalogCardTokenId, giftsetId, content', from:'—', to:'—', note:'content = {productId: giftsetId, quantity: amount}'},
+          ]},
+        ]
+      },
+      io:{
+        input:{"catalogCardTokenId":401,"customerId":501,"amount":3,"giftsetId":"gs-002","topupBy":"CLIENT_ABC","reason":{"extraData":{"partnerTransactionId":"partner-txn-abc-001"}}},
+      }
+    },
+    { id:'credit_cat', label:'CREDIT balance\n(lượt) & Cart / FIFO', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'2 mode tùy campaign flag isUsingCatalogCardExpiration. Legacy: cộng thẳng vào carts.products. FIFO: INSERT catalog_card_fifos, recalculate carts từ SUM.',
+        db:[
+          {table:'carts (Legacy mode — isUsingCatalogCardExpiration=false)', rows:[
+            {op:'update', field:'products[giftsetId].quantity', from:'Q', to:'Q + amount', note:'Tìm entry theo productId=giftsetId; chưa có → lấy từ catalogCard.initialProducts rồi push'},
+          ]},
+          {table:'catalog_card_fifos (FIFO mode — isUsingCatalogCardExpiration=true)', rows:[
+            {op:'insert', field:'cartId, catalogCardTokenId, productId, quantity, expiration', from:'—', to:'quantity=amount, expiration=endOfDay(payload.expiration)', note:'Row mới per topup; productId=giftsetId'},
+          ]},
+          {table:'carts (FIFO mode)', rows:[
+            {op:'update', field:'products[giftsetId].quantity', from:'old', to:'SUM(fifo.quantity) lọc giftsetId + expiration > now', note:'Recalculate từ FIFO sums, không cộng trực tiếp'},
+          ]},
+          {table:'transactions (FIFO mode)', rows:[
+            {op:'update', field:'fifo', from:'[]', to:'[{catalogCardFifoId, quantity, expiration}]', note:'Ghi FIFO entry ID để trace rollback sau này'},
+          ]},
+          {table:'cards', rows:[
+            {op:'update', field:'expiration', from:'old', to:'max(old, newExpiry)', note:'updateCardExpiration'},
+          ]},
+        ]
+      }
+    },
+    { id:'done_cat', label:'Topup lượt\nthành công', layer:'success', shape:'rounded',
+      detail:{
+        desc:'Catalog token không dùng lock nên không cần unlock. Trả response 200 về client với kết quả topup ngay lập tức — topup B2B luôn sync, KHÔNG có callback.',
+        db:[],
+      },
+      io:{
+        output:{
+          "statusCode":200,
+          "data":{
+            "status":"completed",
+            "transactionId":"txn-uuid",
+            "topUpProductRequestId":"tppr-uuid",
+            "catalogBalance":5
+          }
+        }
+      }
+    },
+
+    // Nhánh B — Voucher/Quà
+    { id:'order_pending', label:'Tạo Order +\nTransaction (pending)', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'Ghi nhận đơn hàng và giao dịch trước khi gọi provider.',
+        db:[
+          {table:'orders', rows:[{op:'insert', field:'uuid, transactionId, subtotal, total, type, status, customer(jsonb), card(jsonb)', from:'—', to:'status=\'pending\'', note:'customer + card là snapshot tại thời điểm tạo'}]},
+          {table:'transactions', rows:[{op:'insert', field:'uuid, orderId, cardId, customerId, status, type, amount', from:'—', to:'status=\'pending\', type=\'client-voucher-payment\'', note:''}]},
+        ]
+      },
+      io:{
+        input:{"cardId":201,"customerId":501,"giftDetailId":"gd-uuid-voucher-01","quantity":1,"amount":0},
+      }
+    },
+    { id:'fulfill', label:'Rewards Core fulfill\n(gọi Provider / kho)', layer:'rewards', shape:'rounded',
+      detail:{
+        desc:'Định tuyến theo giftDetail.type, gọi Merchant Connector hoặc lấy code từ Inventory. Inventory layer chịu trách nhiệm xử lý merchant async callback nội bộ — UrCard chỉ nhận kết quả cuối (thành công hoặc thất bại).',
+        validates:[
+          'evoucher_partner / topup_partner: gọi API đối tác real-time — response trả partnerTransactionId (ID phía đối tác)',
+          'evoucher_urbox: tự sinh mã nội bộ, partnerTransactionId = null',
+          'booking: gọi service provider (DragonPass, Fasttrack...)',
+          'physical: tạo delivery order, cần receiverName + addressId',
+        ]
+      }
+    },
+    { id:'fulfill_ok', label:'Fulfill thành công\n→ successful', layer:'success', shape:'rounded',
+      detail:{
+        desc:'Cập nhật trạng thái đơn hàng và giao dịch thành công, gắn codes[] và partnerTransactionId vào order/transaction. Rewards Core trả về status để UrCard relay cho client: status=completed (sync, có kết quả ngay) hoặc status=pending (async, client chờ callback).',
+        db:[
+          {table:'orders', rows:[{op:'update', field:'status, code', from:'\'pending\'', to:'\'successful\' + codes[]', note:'Gắn mã voucher / fulfill info'}]},
+          {table:'transactions', rows:[{op:'update', field:'status, partnerTransactionId', from:'\'pending\'', to:'\'successful\' + ID từ đối tác', note:'partnerTransactionId để đối soát với bên thứ 3'}]},
+        ],
+        success:{code:'200 OK', desc:'{ status, transactionId, orderId, codes[] / fulfill info } — status quyết định client có chờ callback không'}
+      },
+      io:{
+        output:{
+          "statusCode":200,
+          "data":{
+            "status":"completed",
+            "orderId":"ord-uuid","transactionId":"txn-uuid",
+            "codes":["VOUCHER123"],
+            "note":"status=completed → client có kết quả ngay; status=pending → Rewards Core async, callback sau"
+          }
+        }
+      }
+    },
+    { id:'fulfill_fail', label:'Fulfill thất bại\n→ aborted', layer:'error', shape:'rounded',
+      detail:{
+        desc:'Provider lỗi hoặc hết hàng. Không cần rollback balance vì nhánh B không trừ điểm/lượt.',
+        db:[
+          {table:'transactions', rows:[{op:'update', field:'status', from:'\'pending\'', to:'\'aborted\'', note:''}]},
+          {table:'orders', rows:[{op:'update', field:'status', from:'\'pending\'', to:'\'aborted\'', note:''}]},
+        ],
+        errors:[{code:'500 Fulfill thất bại', desc:'Provider lỗi hoặc hết hàng — kèm transactionId để đối soát'}]
+      },
+      io:{
+        output_err:{
+          "statusCode":500,
+          "message":"Fulfill failed — provider error",
+          "data":{"transactionId":"txn-uuid-ccc","orderId":"ord-uuid-bbb","status":"aborted"}
+        }
+      }
+    },
+
+    // Trả response ngay — không callback
+    { id:'response_done', label:'Trả response 200\n(kết thúc — no callback)', layer:'success', shape:'rounded',
+      detail:{
+        desc:'Kết thúc luồng không có callback. 2 trường hợp: (1) Topup điểm/lượt B2B — luôn sync, kết quả có ngay. (2) Đổi voucher B2B/B2C mà Rewards Core xử lý xong đồng bộ (status=completed). Client nhận response 200 là xong, không cần chờ thêm.',
+      },
+      io:{
+        output:{
+          "statusCode":200,
+          "data":{
+            "status":"completed",
+            "transactionId":"txn-uuid",
+            "balance":150000,
+            "note":"Kết quả final — không có callback tiếp theo"
+          }
+        }
+      }
+    },
+
+    // Kiểm tra status từ Rewards Core
+    { id:'check_status', label:'Rewards Core\ntrả pending?', layer:'urcard', shape:'diamond',
+      detail:{
+        desc:'Chỉ áp dụng cho nhánh đổi voucher (B2B & B2C). Rewards Core quyết định sync/async tùy loại quà và provider. UrCard relay status về client ngay trong HTTP response 200. Client đọc status: completed → có kết quả ngay (không chờ gì thêm); pending → Rewards Core đang xử lý async, UrCard sẽ callback khi Rewards Core gọi lại.',
+      },
+      io:{
+        output:{
+          "statusCode":200,
+          "data":{
+            "status":"completed | pending",
+            "transactionId":"txn-uuid",
+            "note":"completed → không chờ callback; pending → chờ callback"
+          }
+        }
+      }
+    },
+
+    // Callback về client — chỉ khi Rewards Core quyết định async (status=pending)
+    { id:'callback_ok', label:'Rewards Core callback\n→ UrCard → Client', layer:'success', shape:'rounded',
+      detail:{
+        desc:'Chỉ xảy ra khi response đã trả status=pending. Luồng: Rewards Core xử lý xong → POST callback inbound vào UrCard → UrCard ghi log inbound → POST callback outbound về clients.callbackUrl. Gửi kèm x-profile-id + x-access-token. Retry outbound tối đa 5 lần exponential backoff. Sau 5 lần không thành công → status=exhausted.',
+        db:[
+          {table:'callback_logs (MongoDB)', rows:[
+            {op:'insert', field:'direction, requestId, clientId, profileId, payload, status', from:'—', to:'direction=\'inbound\', status=\'received\'', note:'Ghi nhận Rewards Core callback vào UrCard'},
+            {op:'insert', field:'direction, requestId, clientId, profileId, callbackUrl, payload, status, attempts, nextRetryAt', from:'—', to:'direction=\'outbound\', status=\'pending\'', note:'Tạo job callback outbound về client'},
+          ]},
+        ],
+      },
+      io:{
+        input:{
+          "điều kiện":"Rewards Core callback về UrCard (inbound) → UrCard forward về client (outbound)",
+          "POST":"<clients.callbackUrl>",
+          "headers":{
+            "x-profile-id":"<profileId>",
+            "x-access-token":"<accessToken>",
+            "Content-Type":"application/json"
+          },
+          "body":{
+            "event":"gift.execute.completed",
+            "requestId":"req-abc-123",
+            "partnerTransactionId":"partner-xyz",
+            "status":"successful",
+            "data":{"orderId":"ord-uuid","transactionId":"txn-uuid","codes":["VOUCHER123"]}
+          }
+        },
+      }
+    },
+    { id:'callback_fail', label:'Callback (nếu pending)\n→ Thất bại', layer:'error', shape:'rounded',
+      detail:{
+        desc:'⚠️ CHỈ gửi callback khi response trước đó trả status=pending. Fulfill thất bại — POST callback báo lỗi về client để client xử lý. Cùng cơ chế retry. Sau 5 lần không thành công → status=exhausted, team đối soát thủ công.',
+        db:[
+          {table:'callback_logs (MongoDB)', rows:[
+            {op:'insert', field:'direction, requestId, clientId, profileId, callbackUrl, payload, status, attempts, nextRetryAt', from:'—', to:'direction=\'outbound\', status=\'pending\'', note:'Chỉ tạo job khi Rewards Core async (status=pending)'},
+          ]},
+        ],
+      },
+      io:{
+        input:{
+          "điều kiện":"CHỈ gửi khi response.status === 'pending'",
+          "POST":"<clients.callbackUrl>",
+          "headers":{
+            "x-profile-id":"<profileId>",
+            "x-access-token":"<accessToken>",
+            "Content-Type":"application/json"
+          },
+          "body":{
+            "event":"gift.execute.failed",
+            "requestId":"req-abc-123",
+            "partnerTransactionId":"partner-xyz",
+            "status":"aborted",
+            "data":{"orderId":"ord-uuid","transactionId":"txn-uuid","error":"Fulfill failed — provider error"}
+          }
+        },
+      }
+    },
+  ],
+  edges: [
+    {from:'start', to:'auth'},
+    {from:'auth', to:'idem'},
+    {from:'idem', to:'campaign'},
+    {from:'campaign', to:'card'},
+    {from:'card', to:'giftdetail'},
+    {from:'giftdetail', to:'branch'},
+    {from:'branch', to:'subpo_pts', label:'topup_points'},
+    {from:'branch', to:'subpo_cat', label:'topup_catalog'},
+    {from:'branch', to:'order_pending', label:'Voucher\n/ Quà'},
+    {from:'subpo_pts', to:'lock_pts_b'},
+    {from:'lock_pts_b', to:'records_pts'},
+    {from:'records_pts', to:'credit_pts'},
+    {from:'credit_pts', to:'done_pts'},
+    {from:'subpo_cat', to:'records_cat'},
+    {from:'records_cat', to:'credit_cat'},
+    {from:'credit_cat', to:'done_cat'},
+    {from:'done_pts', to:'response_done'},
+    {from:'done_cat', to:'response_done'},
+    {from:'order_pending', to:'fulfill'},
+    {from:'fulfill', to:'fulfill_ok', label:'Thành công'},
+    {from:'fulfill', to:'fulfill_fail', label:'Thất bại'},
+    {from:'fulfill_ok', to:'check_status'},
+    {from:'fulfill_fail', to:'callback_fail'},
+    {from:'check_status', to:'callback_ok', label:'pending → chờ\nRewards Core callback'},
+    {from:'check_status', to:'response_done', label:'completed\n→ no callback'},
+  ]
+};
+
+const ENDUSER_FLOW = {
+  nodes: [
+    { id:'start', label:'Gửi request\nPOST /api/v1/enduser\n/gift/execute', layer:'client', shape:'rounded',
+      io:{
+        input:{
+          "POST":"/api/v1/enduser/gift/execute",
+          "headers":{"Content-Type":"application/json","Authorization":"Bearer <card-jwt>"},
+          "body":{
+            "clientCode":"CLIENT_ABC",
+            "campaignCode":"CAMP_2025_Q1",
+            "requestId":"req-enduser-20250101-002",
+            "cardNumber":"4111111111111234",
+            "giftDetailId":"gd-uuid-topup-pts-02",
+            "balance":50000,
+            "signature":"base64-rsa-signature...",
+            "⚠️ topup_points":"gửi balance (số điểm)",
+            "⚠️ topup_catalog":"gửi quantity (số lượt)"
+          }
+        },
+        output_err:{"statusCode":400,"message":"Card not found or deactivated"}
+      }
+    },
+    { id:'auth', label:'Xác thực client\n& chữ ký RSA', layer:'entity', shape:'rounded',
+      detail:{
+        desc:'Tra cứu bảng clients, xác thực chữ ký RSA, kiểm tra idempotency requestId.',
+        validates:[
+          'clients.code tồn tại, status=\'activated\', deletedAt IS NULL',
+          'Chữ ký RSA khớp với clients.clientPublicKey',
+          'campaignCode nằm trong clients.campaignCode[]',
+          'requestId không rỗng; nếu đã có trong log → trả kết quả cũ',
+        ],
+        errors:[{code:'401 Unauthorized', desc:'client không tồn tại / deactivated / chữ ký RSA sai'}],
+      },
+      io:{
+        input:{"clientCode":"CLIENT_ABC","signature":"base64...","requestId":"req-enduser-20250101-002"},
+        output_err:{"statusCode":401,"message":"Unauthorized"}
+      }
+    },
+    { id:'campaign_card', label:'Validate Campaign\n& tìm thẻ end-user', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'Validate campaign và tìm thẻ end-user — thẻ phải tồn tại (không auto-create).',
+        validates:[
+          'campaign.status=\'active\', trong thời gian startAt..endAt',
+          'campaign.clientCode === client',
+          'Customer phải tồn tại (siteUserId + clientCode) — nếu chưa có = chưa được topup → lỗi',
+          'card phải tồn tại và status=\'activated\'',
+          'card.expiration >= now',
+        ],
+        errors:[
+          {code:'400 Thẻ không tồn tại', desc:'End-user chưa được client topup thẻ lần nào'},
+          {code:'400 Thẻ đã bị khóa', desc:'card.status = \'deactivated\''},
+        ]
+      },
+      io:{
+        input:{"cardNumber":"4111111111111234","campaignCode":"CAMP_2025_Q1","clientCode":"CLIENT_ABC"},
+        output_err:{"statusCode":400,"message":"Card not found"}
+      }
+    },
+    { id:'balance', label:'Đọc số dư\n(điểm + lượt theo giftsetId)', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'Đọc FIFO entries của thẻ — số dư phân tách theo giftsetId và expiredAt.',
+        validates:[
+          'prepaid_card_tokens.isChangingBalance phải false — nếu true → 409 (đang có request khác)',
+          'Đọc fifo (jsonb) trên prepaid_card_tokens, sort expiredAt asc, lọc giftsetId',
+          'Đọc catalog_card_fifos sort expiration asc, lọc tags[] ∋ giftsetId',
+          'FIFO entries có expiredAt < now không tính vào số dư khả dụng',
+        ]
+      },
+      io:{
+        input:{"prepaidCardTokenId":301,"catalogCardTokenId":401},
+      }
+    },
+    { id:'giftdetail', label:'Lookup GiftDetail\n& xác định loại quà', layer:'rewards', shape:'rounded',
+      detail:{
+        desc:'Tra cứu giftDetailId trong pool end-user, trả về type và giftsetId.',
+        validates:[
+          'giftDetailId tồn tại, giftDetail.status=\'active\'',
+          'giftDetail.type chỉ được là topup_points hoặc topup_catalog (pool end-user)',
+          'giftDetail.giftsetId thuộc giftset được cấu hình cho end-user trong campaign',
+          'giftDetail.amount × quantity > 0',
+        ],
+        errors:[{code:'400 Không tìm thấy quà', desc:'giftDetailId không tồn tại, type không hợp lệ cho pool end-user'}]
+      },
+      io:{
+        input:{"giftDetailId":"gd-uuid-topup-pts-02"},
+      }
+    },
+    { id:'branch', label:'Loại quà?', layer:'branch', shape:'diamond' },
+
+    // Nhánh điểm
+    { id:'check_pts', label:'Kiểm tra số dư điểm\n(FIFO theo giftsetId)', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'Tính tổng điểm khả dụng trong giftsetId và kiểm tra đủ để trừ.',
+        validates:[
+          'Tổng fifo[].amount (lọc giftsetId, expiredAt >= now) >= giftDetail.amount × quantity',
+          'Nếu không đủ → lỗi 400 ngay, không lock thẻ',
+        ],
+        errors:[{code:'400 Không đủ điểm', desc:'Số dư điểm trong giftsetId không đủ'}]
+      },
+      io:{
+        input:{"prepaidCardTokenId":301,"giftsetId":"gs-001","required":50000},
+        output_err:{"statusCode":400,"message":"Insufficient points balance"}
+      }
+    },
+    { id:'lock_pts', label:'Khóa thẻ &\nDEBIT điểm', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'Lock thẻ và trừ điểm theo FIFO trong giftsetId. FIFO: entry gần hết hạn nhất trừ trước.',
+        validates:[
+          'Double-check prepaid_card_tokens.isChangingBalance = false trước khi lock (tránh race condition)',
+          'FIFO: entry có expiredAt gần nhất trong giftsetId trừ trước',
+          'Cập nhật lại fifo[] trên prepaid_card_tokens sau khi trừ',
+        ],
+        db:[
+          {table:'prepaid_card_tokens', rows:[
+            {op:'update', field:'isChangingBalance', from:'false', to:'true', note:'Lock thẻ — chặn request song song'},
+            {op:'update', field:'balance', from:'B', to:'B − (amount × qty)', note:'Trừ tổng số dư'},
+            {op:'update', field:'availableBalance', from:'AB', to:'AB − (amount × qty)', note:'Trừ số dư khả dụng'},
+            {op:'update', field:'fifo', from:'[...entries]', to:'entries sau khi trừ FIFO theo giftsetId', note:'Giảm amount trên entry gần hết hạn nhất; xóa entry nếu amount = 0'},
+          ]},
+        ]
+      },
+      io:{
+        input:{"prepaidCardTokenId":301,"giftsetId":"gs-001","debitAmount":50000},
+        output_err:{"statusCode":409,"message":"Card is locked by another request"}
+      }
+    },
+    { id:'order_pts', label:'Tạo Order +\nTransaction (pending)', layer:'urcard', shape:'rounded',
+      detail:{
+        db:[
+          {table:'orders', rows:[{op:'insert', field:'uuid, transactionId, subtotal, total, type, status, customer(jsonb), card(jsonb)', from:'—', to:'status=\'pending\'', note:''}]},
+          {table:'transactions', rows:[{op:'insert', field:'uuid, orderId, cardId, customerId, status, type, amount, fifo', from:'—', to:'status=\'pending\', type=\'client-prepaid-card-payment\'', note:'fifo tag giftsetId để rollback đúng ngân sách'}]},
+        ]
+      }
+    },
+    { id:'fulfill_pts', label:'Rewards Core fulfill', layer:'rewards', shape:'rounded',
+      detail:{desc:'Gọi Rewards Core buyVouchers. Rewards Core quyết định sync/async: completed = có kết quả ngay, pending = xử lý bất đồng bộ.'}
+    },
+    { id:'pts_ok', label:'Fulfill OK\n→ UPDATE successful', layer:'success', shape:'rounded',
+      detail:{
+        desc:'UPDATE orders/transactions → successful, unlock thẻ.',
+        db:[
+          {table:'transactions', rows:[{op:'update', field:'status', from:'\'pending\'', to:'\'successful\'', note:''}]},
+          {table:'orders', rows:[{op:'update', field:'status, code', from:'\'pending\'', to:'\'successful\' + codes[]', note:''}]},
+          {table:'prepaid_card_tokens', rows:[{op:'update', field:'isChangingBalance', from:'true', to:'false', note:'Mở khóa thẻ'}]},
+        ]
+      }
+    },
+    { id:'pts_fail', label:'Fulfill thất bại\n→ CREDIT rollback', layer:'error', shape:'rounded',
+      detail:{
+        desc:'Hoàn điểm về thẻ theo đúng giftsetId, sau đó mở khóa.',
+        db:[
+          {table:'prepaid_card_tokens', rows:[
+            {op:'update', field:'balance, availableBalance, fifo', from:'B\'', to:'B\' + rollback_amount', note:'CREDIT rollback, cộng lại đúng FIFO entry'},
+            {op:'update', field:'isChangingBalance', from:'true', to:'false', note:'Mở khóa thẻ'},
+          ]},
+          {table:'transactions', rows:[{op:'update', field:'status', from:'\'pending\'', to:'\'aborted\'', note:''}]},
+          {table:'orders', rows:[{op:'update', field:'status', from:'\'pending\'', to:'\'aborted\'', note:''}]},
+        ],
+        errors:[{code:'500 Fulfill thất bại', desc:'Điểm đã hoàn lại — kèm transactionId đối soát'}]
+      }
+    },
+    { id:'check_status_pts', label:'Rewards Core\ntrả pending?', layer:'urcard', shape:'diamond',
+      detail:{desc:'Rewards Core quyết định sync/async. completed = kết quả có ngay, UrCard trả response 200 kèm codes. pending = Rewards Core xử lý bất đồng bộ, UrCard trả status=pending về client, chờ Rewards Core callback.'}
+    },
+    { id:'response_done_pts', label:'Trả response 200\n(completed — no callback)', layer:'success', shape:'rounded',
+      detail:{
+        desc:'Rewards Core xử lý xong đồng bộ. UrCard trả kết quả ngay cho client — không có callback.',
+        io:{output:{status:'completed', transactionId:'txn-60004', orderId:40002, codes:['STBK-XXXX-YYYY']}}
+      }
+    },
+    { id:'callback_ok_pts', label:'Rewards Core callback\n→ UrCard → Client', layer:'success', shape:'rounded',
+      detail:{
+        desc:'Rewards Core xử lý xong (async) → POST inbound callback vào UrCard → UrCard ghi log → POST outbound về clients.callbackUrl.',
+        db:[
+          {table:'callback_logs', rows:[
+            {op:'insert', field:'direction, status, payload', from:'—', to:'direction=\'inbound\', status=\'received\'', note:'Log nhận callback từ Rewards Core'},
+            {op:'insert', field:'direction, status, payload', from:'—', to:'direction=\'outbound\', status=\'pending\'', note:'Chuẩn bị gửi callback đến client'},
+            {op:'update', field:'status', from:'\'pending\'', to:'\'sent\'', note:'Sau khi POST outbound thành công'},
+          ]}
+        ]
+      }
+    },
+
+    // Nhánh lượt
+    { id:'check_cat', label:'Kiểm tra số dư lượt\n(FIFO theo giftsetId)', layer:'urcard', shape:'rounded',
+      detail:{
+        validates:[
+          'Tổng catalog_card_fifos.quantity (lọc tags[] ∋ giftsetId, expiration >= now) >= quantity',
+          'Nếu không đủ → lỗi 400 ngay, không lock thẻ',
+        ],
+        errors:[{code:'400 Không đủ lượt', desc:'Số dư lượt trong giftsetId không đủ'}]
+      },
+      io:{
+        input:{"catalogCardTokenId":401,"giftsetId":"gs-002","required":1},
+        output_err:{"statusCode":400,"message":"Insufficient catalog balance"}
+      }
+    },
+    { id:'lock_cat', label:'Khóa thẻ &\nDEBIT lượt', layer:'urcard', shape:'rounded',
+      detail:{
+        desc:'Lock catalog token và trừ lượt theo FIFO trong giftsetId. FIFO: entry gần hết hạn nhất trừ trước.',
+        validates:[
+          'Double-check catalog_card_tokens.isChangingBalance = false trước khi lock',
+          'FIFO: entry catalog_card_fifos có expiration gần nhất trong giftsetId trừ trước',
+        ],
+        db:[
+          {table:'catalog_card_tokens', rows:[
+            {op:'update', field:'isChangingBalance', from:'false', to:'true', note:'Lock catalog token — chặn request song song'},
+          ]},
+          {table:'catalog_card_fifos', rows:[
+            {op:'update', field:'quantity', from:'Q', to:'Q − qty_per_gift', note:'FIFO expiration asc trong giftsetId; có thể trải qua nhiều entry nếu qty lớn'},
+            {op:'update', field:'transactionId', from:'null', to:'transactionId', note:'Ghi transactionId để trace rollback đúng entry'},
+          ]},
+        ]
+      },
+      io:{
+        input:{"catalogCardTokenId":401,"giftsetId":"gs-002","debitQty":1},
+        output_err:{"statusCode":409,"message":"Card is locked by another request"}
+      }
+    },
+    { id:'order_cat', label:'Tạo Order +\nTransaction (pending)', layer:'urcard', shape:'rounded',
+      detail:{
+        db:[
+          {table:'orders', rows:[{op:'insert', field:'uuid, transactionId, subtotal, total, type, status, customer(jsonb), card(jsonb)', from:'—', to:'status=\'pending\'', note:''}]},
+          {table:'transactions', rows:[{op:'insert', field:'uuid, orderId, cardId, customerId, status, type, amount', from:'—', to:'status=\'pending\', type=\'client-catalog-card-payment\'', note:''}]},
+        ]
+      }
+    },
+    { id:'fulfill_cat', label:'Rewards Core fulfill', layer:'rewards', shape:'rounded',
+      detail:{desc:'Gọi Rewards Core buyVouchers. Rewards Core quyết định sync/async: completed = có kết quả ngay, pending = xử lý bất đồng bộ.'}
+    },
+    { id:'cat_ok', label:'Fulfill OK\n→ UPDATE successful', layer:'success', shape:'rounded',
+      detail:{
+        db:[
+          {table:'transactions', rows:[{op:'update', field:'status', from:'\'pending\'', to:'\'successful\'', note:''}]},
+          {table:'orders', rows:[{op:'update', field:'status, code', from:'\'pending\'', to:'\'successful\' + codes[]', note:''}]},
+          {table:'catalog_card_tokens', rows:[{op:'update', field:'isChangingBalance', from:'true', to:'false', note:'Mở khóa'}]},
+        ]
+      }
+    },
+    { id:'cat_fail', label:'Fulfill thất bại\n→ CREDIT rollback', layer:'error', shape:'rounded',
+      detail:{
+        desc:'Hoàn lượt về đúng catalog_card_fifos entry đã trừ (trace qua transactionId).',
+        db:[
+          {table:'catalog_card_fifos', rows:[{op:'update', field:'quantity', from:'Q\'', to:'Q\' + rollback_qty', note:'Cộng lại đúng entry đã trừ'}]},
+          {table:'catalog_card_tokens', rows:[{op:'update', field:'isChangingBalance', from:'true', to:'false', note:'Mở khóa'}]},
+          {table:'transactions', rows:[{op:'update', field:'status', from:'\'pending\'', to:'\'aborted\'', note:''}]},
+          {table:'orders', rows:[{op:'update', field:'status', from:'\'pending\'', to:'\'aborted\'', note:''}]},
+        ],
+        errors:[{code:'500 Fulfill thất bại', desc:'Lượt đã hoàn lại — kèm transactionId đối soát'}]
+      }
+    },
+    { id:'check_status_cat', label:'Rewards Core\ntrả pending?', layer:'urcard', shape:'diamond',
+      detail:{desc:'Rewards Core quyết định sync/async. completed = kết quả có ngay, UrCard trả response 200 kèm codes. pending = Rewards Core xử lý bất đồng bộ, UrCard trả status=pending về client, chờ Rewards Core callback.'}
+    },
+    { id:'response_done_cat', label:'Trả response 200\n(completed — no callback)', layer:'success', shape:'rounded',
+      detail:{
+        desc:'Rewards Core xử lý xong đồng bộ. UrCard trả kết quả ngay cho client — không có callback.',
+        io:{output:{status:'completed', transactionId:'txn-60005', orderId:40003, codes:['CAT-XXXX-ZZZZ']}}
+      }
+    },
+    { id:'callback_ok_cat', label:'Rewards Core callback\n→ UrCard → Client', layer:'success', shape:'rounded',
+      detail:{
+        desc:'Rewards Core xử lý xong (async) → POST inbound callback vào UrCard → UrCard ghi log → POST outbound về clients.callbackUrl.',
+        db:[
+          {table:'callback_logs', rows:[
+            {op:'insert', field:'direction, status, payload', from:'—', to:'direction=\'inbound\', status=\'received\'', note:'Log nhận callback từ Rewards Core'},
+            {op:'insert', field:'direction, status, payload', from:'—', to:'direction=\'outbound\', status=\'pending\'', note:'Chuẩn bị gửi callback đến client'},
+            {op:'update', field:'status', from:'\'pending\'', to:'\'sent\'', note:'Sau khi POST outbound thành công'},
+          ]}
+        ]
+      }
+    },
+  ],
+  edges: [
+    {from:'start', to:'auth'},
+    {from:'auth', to:'campaign_card'},
+    {from:'campaign_card', to:'balance'},
+    {from:'balance', to:'giftdetail'},
+    {from:'giftdetail', to:'branch'},
+    {from:'branch', to:'check_pts', label:'topup_points'},
+    {from:'branch', to:'check_cat', label:'topup_catalog'},
+    {from:'check_pts', to:'lock_pts'},
+    {from:'lock_pts', to:'order_pts'},
+    {from:'order_pts', to:'fulfill_pts'},
+    {from:'fulfill_pts', to:'pts_ok', label:'Thành công'},
+    {from:'fulfill_pts', to:'pts_fail', label:'Thất bại'},
+    {from:'pts_ok', to:'check_status_pts'},
+    {from:'check_status_pts', to:'response_done_pts', label:'completed\n→ no callback'},
+    {from:'check_status_pts', to:'callback_ok_pts', label:'pending → chờ\nRewards Core callback'},
+    {from:'check_cat', to:'lock_cat'},
+    {from:'lock_cat', to:'order_cat'},
+    {from:'order_cat', to:'fulfill_cat'},
+    {from:'fulfill_cat', to:'cat_ok', label:'Thành công'},
+    {from:'fulfill_cat', to:'cat_fail', label:'Thất bại'},
+    {from:'cat_ok', to:'check_status_cat'},
+    {from:'check_status_cat', to:'response_done_cat', label:'completed\n→ no callback'},
+    {from:'check_status_cat', to:'callback_ok_cat', label:'pending → chờ\nRewards Core callback'},
+  ]
+};
+
+// ─── LAYOUT ENGINE ────────────────────────────────────────
+// Layout: topological rank for y, col hint for x
+// Nodes can have { col: N } to force x column position
+
+function layoutFlow(flow) {
+  const nodeMap = {};
+  flow.nodes.forEach(n => nodeMap[n.id] = n);
+
+  // Build adjacency
+  const children = {}, parents = {};
+  flow.nodes.forEach(n => { children[n.id] = []; parents[n.id] = []; });
+  flow.edges.forEach(e => {
+    if (children[e.from]) children[e.from].push(e.to);
+    if (parents[e.to]) parents[e.to].push(e.from);
+  });
+
+  // Topological sort → assign rank (y)
+  const rank = {};
+  const visited = new Set();
+  function dfs(id, r) {
+    if (rank[id] === undefined || rank[id] < r) rank[id] = r;
+    if (visited.has(id)) return;
+    visited.add(id);
+    (children[id] || []).forEach(c => dfs(c, r + 1));
+  }
+  dfs(flow.nodes[0].id, 0);
+
+  // Group by rank
+  const byRank = {};
+  flow.nodes.forEach(n => {
+    const r = rank[n.id] ?? 0;
+    if (!byRank[r]) byRank[r] = [];
+    byRank[r].push(n.id);
+  });
+
+  const NODE_W = 200, NODE_H = 88, PAD_X = 48, PAD_Y = 70;
+  const pos = {};
+
+  // Check if any node has col hint → use manual col layout
+  const hasColHints = flow.nodes.some(n => n.col !== undefined);
+
+  if (hasColHints) {
+    // Determine max col used
+    const maxCol = Math.max(...flow.nodes.map(n => n.col ?? 0));
+    const totalW = (maxCol + 1) * (NODE_W + PAD_X);
+
+    // For nodes without col hint, auto-assign within their rank group
+    Object.keys(byRank).sort((a,b)=>a-b).forEach(r => {
+      const ids = byRank[r];
+      // Separate hinted vs auto
+      const hinted = ids.filter(id => nodeMap[id].col !== undefined);
+      const auto   = ids.filter(id => nodeMap[id].col === undefined);
+      // Place hinted nodes first
+      hinted.forEach(id => {
+        const col = nodeMap[id].col;
+        pos[id] = { x: col * (NODE_W + PAD_X), y: Number(r) * (NODE_H + PAD_Y) };
+      });
+      // Auto nodes: fill remaining cols
+      const usedCols = new Set(hinted.map(id => nodeMap[id].col));
+      let autoCol = 0;
+      auto.forEach(id => {
+        while (usedCols.has(autoCol)) autoCol++;
+        pos[id] = { x: autoCol * (NODE_W + PAD_X), y: Number(r) * (NODE_H + PAD_Y) };
+        usedCols.add(autoCol);
+        autoCol++;
+      });
+    });
+  } else {
+    // Default: center each rank
+    const maxWidth = Math.max(...Object.values(byRank).map(ids => ids.length)) * (NODE_W + PAD_X);
+    Object.keys(byRank).sort((a,b)=>a-b).forEach(r => {
+      const ids = byRank[r];
+      const rowW = ids.length * (NODE_W + PAD_X) - PAD_X;
+      const offset = (maxWidth - rowW) / 2;
+      ids.forEach((id, i) => {
+        pos[id] = { x: offset + i * (NODE_W + PAD_X), y: Number(r) * (NODE_H + PAD_Y) };
+      });
+    });
+  }
+
+  return { pos, NODE_W, NODE_H };
+}
+
+// ─── SVG RENDERER ─────────────────────────────────────────
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function el(tag, attrs={}, text='') {
+  const e = document.createElementNS(SVG_NS, tag);
+  Object.entries(attrs).forEach(([k,v]) => e.setAttribute(k, v));
+  if (text) e.textContent = text;
+  return e;
+}
+
+function renderFlow(flow) {
+  const svg = document.getElementById('flowchart');
+  svg.innerHTML = '';
+
+  const { pos, NODE_W, NODE_H } = layoutFlow(flow);
+  const PAD = 40;
+
+  // Compute SVG size
+  const xs = Object.values(pos).map(p => p.x);
+  const ys = Object.values(pos).map(p => p.y);
+  const W = Math.max(...xs) + NODE_W + PAD * 2;
+  const H = Math.max(...ys) + NODE_H + PAD * 2;
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  // Defs: arrowhead
+  const defs = el('defs');
+  ['#64748b','#3b82f6','#22c55e','#ef4444'].forEach((color, i) => {
+    const marker = el('marker', {id:`arr${i}`, markerWidth:8, markerHeight:6, refX:8, refY:3, orient:'auto'});
+    marker.appendChild(el('polygon', {points:'0 0, 8 3, 0 6', fill: color}));
+    defs.appendChild(marker);
+  });
+  svg.appendChild(defs);
+
+  const nodeMap = {};
+  flow.nodes.forEach(n => nodeMap[n.id] = n);
+
+  // Draw edges
+  flow.edges.forEach(edge => {
+    const fp = pos[edge.from], tp = pos[edge.to];
+    if (!fp || !tp) return;
+    const fx = fp.x + NODE_W/2 + PAD, fy = fp.y + NODE_H + PAD;
+    const tx = tp.x + NODE_W/2 + PAD, ty = tp.y + PAD;
+
+    const toNode = nodeMap[edge.to];
+    const isError = toNode?.layer === 'error';
+    const isSuccess = toNode?.layer === 'success';
+    const stroke = isError ? '#ef4444' : isSuccess ? '#22c55e' : '#94a3b8';
+    const markerId = isError ? 'arr3' : isSuccess ? 'arr2' : 'arr0';
+
+    const g = el('g', {class:'flow-edge', 'data-from':edge.from, 'data-to':edge.to});
+    let path;
+    if (Math.abs(fx - tx) < 5) {
+      path = el('path', {d:`M${fx},${fy} L${tx},${ty}`, stroke, 'stroke-width':1.5, fill:'none', 'marker-end':`url(#${markerId})`});
+    } else {
+      const cy1 = fy + (ty - fy) * 0.4, cy2 = ty - (ty - fy) * 0.4;
+      path = el('path', {d:`M${fx},${fy} C${fx},${cy1} ${tx},${cy2} ${tx},${ty}`, stroke, 'stroke-width':1.5, fill:'none', 'marker-end':`url(#${markerId})`});
+    }
+    g.appendChild(path);
+
+    if (edge.label) {
+      // Place label at 75% toward destination so sibling branches don't overlap
+      const t = 0.75;
+      const lx = fx + (tx - fx) * t;
+      const ly = fy + (ty - fy) * t;
+      const lines = edge.label.split('\n').filter(Boolean);
+      const lineH = 13, padX = 8, padY = 4;
+      const maxLen = Math.max(...lines.map(l => l.length));
+      const bw = Math.max(52, maxLen * 6.2 + padX * 2);
+      const bh = lines.length * lineH + padY * 2;
+      const bx = lx - bw / 2, by = ly - bh / 2;
+      g.appendChild(el('rect', {x:bx, y:by, width:bw, height:bh, rx:6, fill:'white', stroke, 'stroke-width':1, opacity:0.95}));
+      lines.forEach((line, i) => {
+        const t2 = el('text', {
+          x: lx, y: by + padY + lineH * i + lineH * 0.75,
+          'text-anchor':'middle', 'font-size':10, fill: stroke, 'font-weight':600
+        }, line);
+        g.appendChild(t2);
+      });
+    }
+    svg.appendChild(g);
+  });
+
+  // Draw nodes
+  flow.nodes.forEach(n => {
+    const p = pos[n.id];
+    if (!p) return;
+    const x = p.x + PAD, y = p.y + PAD;
+    const lc = LAYER_COLORS[n.layer] || LAYER_COLORS.urcard;
+    const g = el('g', {class:'flow-node', 'data-id': n.id, style:'cursor:pointer'});
+
+    if (n.shape === 'diamond') {
+      const cx = x + NODE_W/2, cy = y + NODE_H/2;
+      const hw = NODE_W/2, hh = NODE_H/2 + 4;
+      g.appendChild(el('polygon', {
+        points:`${cx},${cy-hh} ${cx+hw},${cy} ${cx},${cy+hh} ${cx-hw},${cy}`,
+        fill: lc.bg, stroke: lc.border, 'stroke-width':2,
+        rx:6
+      }));
+    } else {
+      g.appendChild(el('rect', {x, y, width:NODE_W, height:NODE_H, rx:10,
+        fill:lc.bg, stroke:lc.border, 'stroke-width':2}));
+    }
+
+    // Label (multiline)
+    const lines = n.label.split('\n');
+    const lineH = 14;
+    const startY = y + NODE_H/2 - (lines.length-1)*lineH/2;
+    lines.forEach((line, i) => {
+      const t = el('text', {
+        x: x + NODE_W/2,
+        y: startY + i * lineH,
+        'text-anchor':'middle',
+        'dominant-baseline':'middle',
+        'font-size': 12,
+        'font-weight': i===0 ? 600 : 400,
+        fill: lc.text
+      }, line);
+      g.appendChild(t);
+    });
+
+    g.addEventListener('click', () => {
+      const idx = presentationOrder.indexOf(n.id);
+      if (idx !== -1) { presentationStep = idx; applyPresentationStep(); }
+      openPanel(n);
+    });
+    // hover effect
+    g.addEventListener('mouseenter', () => {
+      if (presentationActive && presentationOrder[presentationStep] !== n.id) return;
+      const rect = g.querySelector('rect,polygon');
+      if (rect) { rect.setAttribute('stroke-width', 3); rect.style.filter='drop-shadow(0 2px 6px rgba(0,0,0,0.18))'; }
+    });
+    g.addEventListener('mouseleave', () => {
+      const rect = g.querySelector('rect,polygon');
+      if (rect) { rect.setAttribute('stroke-width', presentationActive && presentationOrder[presentationStep] === n.id ? 3 : 2); rect.style.filter=''; }
+    });
+    svg.appendChild(g);
+  });
+}
+
+// ─── SCHEMA DATA ──────────────────────────────────────────
+const SCHEMAS = {
+  client_redeem_request_logs: {
+    label: 'client_redeem_request_logs', note: 'MongoDB — idempotency log riêng cho B2B client, 2 unique index: requestId và partnerTransactionId',
+    cols: [
+      {name:'_id', type:'ObjectId', pk:true, nullable:false, note:'Auto-generated bởi MongoDB'},
+      {name:'requestId', type:'String', nullable:false, note:'UUID hợp lệ — UNIQUE INDEX; duplicate (11000) → trả cached result (idempotent)'},
+      {name:'partnerTransactionId', type:'String', nullable:false, note:'ID đối tác — UNIQUE INDEX; duplicate (11000) → 400 Duplicate. Đây là field chính để check duplicate'},
+      {name:'createdAt', type:'Date', nullable:false, note:'Thời điểm nhận request'},
+      {name:'content', type:'Object', nullable:false, note:'Toàn bộ request body + result (lưu sau khi xử lý xong để trả lại khi duplicate requestId)'},
+      {name:'reason', type:'Object', nullable:true, note:'Metadata bổ sung — reason.extraData.partnerTransactionId lưu thêm để trace, không dùng để check duplicate'},
+    ]
+  },
+  clients: {
+    label: 'clients', note: 'Bảng xác thực định danh client B2B (Sequelize, DB_URCARD)',
+    cols: [
+      {name:'id', type:'INTEGER', pk:true, nullable:false, note:'Auto-increment PK'},
+      {name:'uuid', type:'UUID', nullable:false, note:'uuid_generate_v1mc(), unique'},
+      {name:'code', type:'VARCHAR', nullable:false, note:'Mã định danh client — dùng để lookup khi xác thực'},
+      {name:'description', type:'VARCHAR', nullable:true, note:'Mô tả'},
+      {name:'campaignCode', type:'VARCHAR[]', nullable:true, note:'Whitelist các campaign client được phép gọi'},
+      {name:'profileId', type:'VARCHAR', nullable:true, note:''},
+      {name:'accessToken', type:'VARCHAR', nullable:true, note:''},
+      {name:'status', type:'ENUM(activated,deactivated)', nullable:false, note:'Kiểm tra = activated khi auth'},
+      {name:'clientPublicKey', type:'VARCHAR', nullable:true, note:'Public key của client — dùng verify chữ ký RSA payload'},
+      {name:'callbackUrl', type:'VARCHAR', nullable:true, note:'Webhook callback URL'},
+      {name:'ubPrivateKey', type:'VARCHAR', nullable:true, note:'Private key UrBox — dùng ký response trả về client'},
+      {name:'ubPublicKey', type:'VARCHAR', nullable:true, note:'Public key UrBox'},
+      {name:'params', type:'JSONB', nullable:true, note:'Cấu hình mở rộng'},
+      {name:'tags', type:'VARCHAR[]', nullable:true, note:''},
+      {name:'createdAt', type:'TIMESTAMPTZ', nullable:false, note:''},
+      {name:'deletedAt', type:'TIMESTAMPTZ', nullable:true, note:'Paranoid soft-delete — phải IS NULL khi auth'},
+    ]
+  },
+  cards: {
+    label: 'cards', note: 'Thẻ của end-user trong campaign (TypeORM)',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:'Auto-increment'},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'prepaidCardTokenId', type:'BIGINT', fk:'prepaid_card_tokens', nullable:true, note:'FK → điểm'},
+      {name:'catalogCardTokenId', type:'BIGINT', fk:'catalog_card_tokens', nullable:true, note:'FK → lượt'},
+      {name:'cardIssueId', type:'BIGINT', nullable:false, note:'Đợt phát hành thẻ'},
+      {name:'campaignId', type:'INTEGER', nullable:false, note:''},
+      {name:'customerId', type:'INTEGER', nullable:false, fk:'customers', note:''},
+      {name:'expiration', type:'TIMESTAMPTZ', nullable:false, note:'Hạn thẻ — mở rộng khi topup thêm'},
+      {name:'secretKey', type:'VARCHAR', nullable:false, note:'RSA private key của thẻ'},
+      {name:'publicKey', type:'VARCHAR', nullable:false, note:'RSA public key của thẻ'},
+      {name:'number', type:'VARCHAR', nullable:false, note:'Số thẻ Luhn'},
+      {name:'numberEncrypted', type:'VARCHAR', nullable:false, note:'Số thẻ mã hóa'},
+      {name:'status', type:'ENUM(deactivated,activated)', nullable:false, note:'activated = dùng được'},
+    ]
+  },
+  prepaid_card_tokens: {
+    label: 'prepaid_card_tokens', note: 'Token điểm (points balance) của thẻ',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'prepaidCardId', type:'BIGINT', nullable:false, note:'FK → prepaid_cards'},
+      {name:'cardIssueId', type:'BIGINT', nullable:false, note:''},
+      {name:'campaignId', type:'INTEGER', nullable:false, note:''},
+      {name:'customerId', type:'INTEGER', nullable:true, fk:'customers', note:''},
+      {name:'expiration', type:'TIMESTAMPTZ', nullable:false, note:'Hạn token — mở rộng theo FIFO entry mới nhất'},
+      {name:'balance', type:'DECIMAL', nullable:false, note:'Tổng điểm hiện có'},
+      {name:'availableBalance', type:'DECIMAL', nullable:false, note:'Điểm khả dụng (chưa bị hold)'},
+      {name:'status', type:'ENUM', nullable:false, note:'activated / deactivated'},
+      {name:'fifo', type:'JSONB', nullable:true, note:'Array FIFO entries [{giftsetId, amount, expiredAt}] — sort expiredAt asc'},
+      {name:'isChangingBalance', type:'BOOLEAN', nullable:false, note:'Lock flag — true = đang có request thay đổi balance, phải chờ'},
+      {name:'pendingTransactions', type:'JSONB', nullable:true, note:''},
+    ]
+  },
+  catalog_card_tokens: {
+    label: 'catalog_card_tokens', note: 'Token lượt (catalog balance) của thẻ',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'catalogCardId', type:'BIGINT', nullable:false, note:''},
+      {name:'cardIssueId', type:'BIGINT', nullable:false, note:''},
+      {name:'publisherId', type:'INTEGER', nullable:false, note:''},
+      {name:'campaignId', type:'INTEGER', nullable:false, note:''},
+      {name:'customerId', type:'INTEGER', nullable:true, fk:'customers', note:''},
+      {name:'designTemplateId', type:'SMALLINT', nullable:false, note:''},
+      {name:'status', type:'ENUM', nullable:false, note:'activated / deactivated'},
+      {name:'expiration', type:'TIMESTAMPTZ', nullable:false, note:''},
+      {name:'params', type:'JSON', nullable:true, note:''},
+      {name:'isChangingBalance', type:'BOOLEAN', nullable:false, note:'Lock flag cho catalog token'},
+    ]
+  },
+  catalog_card_fifos: {
+    label: 'catalog_card_fifos', note: 'FIFO entries cho lượt — mỗi row = 1 lô lượt với hạn riêng',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'catalogCardTokenId', type:'BIGINT', nullable:false, fk:'catalog_card_tokens', note:''},
+      {name:'cartId', type:'BIGINT', nullable:false, note:''},
+      {name:'productId', type:'INT', nullable:false, note:''},
+      {name:'quantity', type:'INT', nullable:false, note:'Số lượt còn lại trong lô này — DEBIT giảm xuống'},
+      {name:'topupProductRequestId', type:'BIGINT', nullable:true, note:'FK → topup_product_requests'},
+      {name:'transactionId', type:'BIGINT', nullable:true, fk:'transactions', note:'Ghi khi DEBIT để trace rollback'},
+      {name:'tags', type:'TEXT[]', nullable:false, note:'Chứa giftsetId — lọc FIFO đúng ngân sách'},
+      {name:'expiration', type:'TIMESTAMPTZ', nullable:true, note:'Hạn của lô lượt — sort asc để FIFO'},
+    ]
+  },
+  sub_purchase_orders: {
+    label: 'sub_purchase_orders', note: 'Ngân sách SubPO của client B2B',
+    cols: [
+      {name:'id', type:'INTEGER', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'poId', type:'INTEGER', nullable:false, fk:'purchase_orders', note:'FK → PO cha'},
+      {name:'subPoCode', type:'VARCHAR', nullable:false, note:'Mã SubPO'},
+      {name:'amount', type:'DECIMAL', nullable:false, note:'Tổng ngân sách ban đầu'},
+      {name:'availableAmount', type:'DECIMAL', nullable:false, note:'Ngân sách còn lại — DEBIT mỗi lần topup'},
+      {name:'status', type:'ENUM', nullable:false, note:'Phải active trước khi trừ'},
+      {name:'totalTopUpAmount', type:'DECIMAL', nullable:true, note:'Tổng đã topup'},
+      {name:'params', type:'JSONB', nullable:true, note:''},
+      {name:'tags', type:'TEXT[]', nullable:false, note:''},
+    ]
+  },
+  topup_requests: {
+    label: 'topup_requests', note: 'Yêu cầu topup điểm',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'prepaidCardTokenId', type:'BIGINT', nullable:false, fk:'prepaid_card_tokens', note:''},
+      {name:'customerId', type:'INTEGER', nullable:false, fk:'customers', note:''},
+      {name:'status', type:'ENUM(pending,approved,aborted)', nullable:false, note:'pending → approved sau CREDIT'},
+      {name:'type', type:'ENUM(auto,manual)', nullable:false, note:'auto = API call'},
+      {name:'amount', type:'DECIMAL', nullable:false, note:'Số điểm topup'},
+      {name:'reason', type:'JSONB', nullable:true, note:'reason.extraData.partnerTransactionId lưu thêm để trace đối soát — không dùng để check duplicate'},
+      {name:'topupBy', type:'VARCHAR', nullable:true, note:''},
+      {name:'subPoId', type:'INTEGER', nullable:true, fk:'sub_purchase_orders', note:''},
+    ]
+  },
+  topup_product_requests: {
+    label: 'topup_product_requests', note: 'Yêu cầu topup lượt (catalog)',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'catalogCardTokenId', type:'BIGINT', nullable:false, fk:'catalog_card_tokens', note:''},
+      {name:'customerId', type:'INTEGER', nullable:false, fk:'customers', note:''},
+      {name:'status', type:'ENUM(pending,approved,aborted)', nullable:false, note:''},
+      {name:'type', type:'ENUM(auto,manual)', nullable:false, note:''},
+      {name:'amount', type:'DECIMAL', nullable:false, note:'Số lượt topup'},
+      {name:'giftsetId', type:'VARCHAR', nullable:true, note:'Tag giftsetId cho FIFO'},
+      {name:'reason', type:'JSONB', nullable:true, note:'reason.extraData.partnerTransactionId lưu thêm để trace đối soát — không dùng để check duplicate'},
+      {name:'topupBy', type:'VARCHAR', nullable:true, note:''},
+    ]
+  },
+  transactions: {
+    label: 'transactions', note: 'Giao dịch điểm/lượt/voucher',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'orderId', type:'BIGINT', nullable:true, fk:'orders', note:'Có khi redeem quà'},
+      {name:'cardId', type:'BIGINT', nullable:true, fk:'cards', note:''},
+      {name:'customerId', type:'INTEGER', nullable:true, fk:'customers', note:''},
+      {name:'status', type:'ENUM(pending,failed,successful,aborted)', nullable:false, note:''},
+      {name:'type', type:'ENUM(client-prepaid-card-payment,client-catalog-card-payment,client-voucher-payment,client-topup-prepaid-card,client-topup-catalog-card,...)', nullable:false, note:'Xác định loại transaction'},
+      {name:'amount', type:'DECIMAL', nullable:true, note:''},
+      {name:'code', type:'VARCHAR', nullable:true, note:'Mã giao dịch'},
+      {name:'fifo', type:'JSONB', nullable:true, note:'Tag giftsetId + expiredAt — dùng cho FIFO rollback'},
+      {name:'partnerTransactionCode', type:'VARCHAR', nullable:true, note:'Mã giao dịch từ provider'},
+    ]
+  },
+  topup_transactions: {
+    label: 'topup_transactions', note: 'Liên kết transaction ↔ topup_request (topup_points)',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'transactionId', type:'BIGINT', nullable:false, fk:'transactions', note:'unique — 1 transaction chỉ có 1 topup_transaction'},
+      {name:'topupRequestId', type:'BIGINT', nullable:false, fk:'topup_requests', note:'unique — 1 topup_request chỉ có 1 entry'},
+      {name:'prepaidCardTokenId', type:'BIGINT', nullable:false, fk:'prepaid_card_tokens', note:''},
+      {name:'reason', type:'JSONB', nullable:false, note:'Lý do/metadata topup'},
+      {name:'params', type:'JSONB', nullable:true, note:''},
+    ]
+  },
+  topup_product_transactions: {
+    label: 'topup_product_transactions', note: 'Liên kết transaction ↔ topup_product_request (topup_catalog)',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'transactionId', type:'BIGINT', nullable:false, fk:'transactions', note:'unique — 1 transaction 1 entry'},
+      {name:'topupProductRequestId', type:'BIGINT', nullable:false, fk:'topup_product_requests', note:'unique'},
+      {name:'catalogCardTokenId', type:'BIGINT', nullable:false, fk:'catalog_card_tokens', note:''},
+      {name:'giftsetId', type:'BIGINT', nullable:false, note:'Phân tách ngân sách theo giftset'},
+      {name:'content', type:'JSONB', nullable:false, note:'Nội dung lô lượt (product info, qty...)'},
+      {name:'params', type:'JSONB', nullable:true, note:''},
+    ]
+  },
+  carts: {
+    label: 'carts', note: 'Giỏ hàng lượt của catalog_card_token — 1 token = 1 cart (unique)',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'catalogCardTokenId', type:'BIGINT', nullable:false, fk:'catalog_card_tokens', note:'unique — 1 token 1 cart'},
+      {name:'products', type:'JSONB', nullable:false, note:'Array [{productId, quantity, ...initialProduct}] — quantity = tổng lượt còn lại theo giftsetId; cập nhật mỗi lần topup/redeem'},
+      {name:'params', type:'JSON', nullable:true, note:''},
+    ]
+  },
+  callback_logs: {
+    label: 'callback_logs', note: 'MongoDB — track callback 2 chiều: inbound (merchant→UrCard) & outbound (UrCard→client)',
+    cols: [
+      {name:'_id', type:'ObjectId', pk:true, nullable:false, note:'Auto-generated'},
+      {name:'direction', type:'ENUM(inbound,outbound)', nullable:false, note:'inbound = merchant gọi vào UrCard | outbound = UrCard gọi về client'},
+      {name:'requestId', type:'String', nullable:false, note:'Ref client_redeem_request_logs.requestId — liên kết với request gốc'},
+      {name:'clientId', type:'Number', nullable:false, note:'Ref clients (PostgreSQL)'},
+      {name:'providerId', type:'Number', nullable:true, note:'Ref providers (PostgreSQL) — chỉ có khi direction=inbound'},
+      {name:'profileId', type:'String', nullable:false, note:'x-profile-id gửi trong header callback'},
+      {name:'callbackUrl', type:'String', nullable:true, note:'URL đích — outbound only; snapshot tại thời điểm gửi'},
+      {name:'payload', type:'Object', nullable:false, note:'Nội dung POST body'},
+      {name:'status', type:'ENUM(pending,waiting_merchant,success,failed,exhausted)', nullable:false, note:'pending→waiting_merchant (chờ merchant)→success/failed; exhausted sau 5 lần retry'},
+      {name:'attempts', type:'Number', nullable:false, note:'Số lần đã thử gửi, default 0'},
+      {name:'nextRetryAt', type:'Date', nullable:true, note:'outbound — thời điểm retry tiếp theo (exponential backoff)'},
+      {name:'timeoutAt', type:'Date', nullable:true, note:'inbound — deadline chờ merchant callback; job detect timeout'},
+      {name:'lastResponseCode', type:'Number', nullable:true, note:'HTTP status nhận được từ lần gửi cuối'},
+      {name:'lastError', type:'String', nullable:true, note:'Error message nếu fail'},
+      {name:'createdAt', type:'Date', nullable:false, note:''},
+      {name:'updatedAt', type:'Date', nullable:false, note:''},
+    ]
+  },
+  orders: {
+    label: 'orders', note: 'Đơn hàng đổi quà / voucher',
+    cols: [
+      {name:'id', type:'BIGINT', pk:true, nullable:false, note:''},
+      {name:'uuid', type:'UUID', nullable:false, note:'unique'},
+      {name:'transactionId', type:'BIGINT', nullable:true, fk:'transactions', note:''},
+      {name:'subtotal', type:'DECIMAL', nullable:true, note:''},
+      {name:'total', type:'DECIMAL', nullable:true, note:''},
+      {name:'type', type:'VARCHAR', nullable:true, note:'Loại đơn hàng'},
+      {name:'status', type:'ENUM(pending,successful,aborted,...)', nullable:false, note:''},
+      {name:'cashier', type:'VARCHAR', nullable:true, note:''},
+      {name:'promotion', type:'JSONB', nullable:true, note:''},
+      {name:'customer', type:'JSONB', nullable:true, note:'Snapshot customer tại thời điểm tạo đơn'},
+      {name:'card', type:'JSONB', nullable:true, note:'Snapshot card tại thời điểm tạo đơn'},
+      {name:'code', type:'VARCHAR', nullable:true, note:'Mã voucher hoặc fulfill info — ghi sau khi fulfill thành công'},
+    ]
+  },
+};
+
+// Map node id → relevant schema tables to show
+const NODE_SCHEMAS = {
+  // CLIENT FLOW
+  auth:          ['clients'],
+  idem:          ['client_redeem_request_logs'],
+  campaign:      [],
+  card:          ['cards','prepaid_card_tokens','catalog_card_tokens'],
+  giftdetail:    [],
+  // Nhánh topup_points
+  subpo_pts:     ['sub_purchase_orders'],
+  lock_pts_b:    ['prepaid_card_tokens'],
+  records_pts:   ['topup_requests','transactions','topup_transactions'],
+  credit_pts:    ['prepaid_card_tokens','cards'],
+  done_pts:      ['prepaid_card_tokens','callback_logs'],
+  // Nhánh topup_catalog
+  subpo_cat:     ['sub_purchase_orders'],
+  records_cat:   ['topup_product_requests','transactions','topup_product_transactions'],
+  credit_cat:    ['carts','catalog_card_fifos','transactions','cards'],
+  done_cat:      ['callback_logs'],
+  // Nhánh voucher/quà
+  order_pending: ['orders','transactions'],
+  fulfill:       [],
+  fulfill_ok:    ['orders','transactions'],
+  fulfill_fail:  ['orders','transactions'],
+  check_status:  [],
+  response_done: [],
+  callback_ok:   ['callback_logs'],
+  callback_fail: ['callback_logs'],
+  // ENDUSER FLOW
+  campaign_card: ['cards','prepaid_card_tokens','catalog_card_tokens'],
+  balance:       ['prepaid_card_tokens','catalog_card_fifos'],
+  check_pts:     ['prepaid_card_tokens'],
+  lock_pts:      ['prepaid_card_tokens'],
+  order_pts:     ['orders','transactions'],
+  fulfill_pts:   [],
+  pts_ok:        ['transactions','orders','prepaid_card_tokens'],
+  pts_fail:      ['prepaid_card_tokens','transactions','orders'],
+  check_cat:     ['catalog_card_tokens','catalog_card_fifos'],
+  lock_cat:      ['catalog_card_tokens','catalog_card_fifos'],
+  order_cat:     ['orders','transactions'],
+  fulfill_cat:   [],
+  cat_ok:        ['transactions','orders','catalog_card_tokens'],
+  cat_fail:      ['catalog_card_fifos','catalog_card_tokens','transactions','orders'],
+};
+
+const SKIP_COLS = new Set(['id','uuid','createdAt','createdBy','updatedAt','updatedBy','deletedAt','deletedBy']);
+
+function renderSchemaTab(nodeId) {
+  const tables = NODE_SCHEMAS[nodeId] || [];
+  if (!tables.length) return `<div style="padding:20px 0;color:#94a3b8;font-size:13px;text-align:center">Bước này không thay đổi schema cụ thể</div>`;
+
+  let html = '';
+  tables.forEach(tbl => {
+    const s = SCHEMAS[tbl];
+    if (!s) return;
+    const cols = s.cols.filter(c => !SKIP_COLS.has(c.name));
+    html += `<div class="schema-entity-title">${s.label} <span style="font-size:10px;font-weight:400;color:#94a3b8">${s.note}</span></div>`;
+    html += `<div class="schema-wrap"><table class="schema-table">`;
+    html += `<tr><th>Column</th><th>Mô tả</th></tr>`;
+    cols.forEach(c => {
+      const pkBadge = c.pk ? '<span class="pk-badge">PK</span>' : '';
+      const fkBadge = c.fk ? `<span class="fk-badge">FK</span>` : '';
+      const desc = c.note + (c.fk ? ` → <em>${c.fk}</em>` : '');
+      html += `<tr>
+        <td class="schema-col-name">${c.name}${pkBadge}${fkBadge}</td>
+        <td class="schema-col-note">${desc}</td>
+      </tr>`;
+    });
+    html += `</table></div>`;
+  });
+  return html;
+}
+
+// ─── IO RENDERER ──────────────────────────────────────────
+function jsonHL(obj) {
+  const raw = JSON.stringify(obj, null, 2);
+  return raw
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"([^"]+)":/g, '<span class="k">"$1"</span>:')
+    .replace(/: "([^"]*)"/g, ': <span class="s">"$1"</span>')
+    .replace(/: (true|false|null)/g, ': <span class="b">$1</span>')
+    .replace(/: (-?\d+\.?\d*)/g, ': <span class="n">$1</span>')
+    .replace(/\/\/ (.+)/g, '<span class="c">// $1</span>');
+}
+
+function renderIOTab(node) {
+  if (!node.io) return `<div style="padding:20px 0;color:#94a3b8;font-size:13px;text-align:center">Không có I/O example cho bước này</div>`;
+  const io = node.io;
+  let html = '';
+
+  if (io.input) {
+    html += `<div class="io-block">
+      <div class="io-label input">📥 Input</div>
+      <pre class="io-pre">${jsonHL(io.input)}</pre>
+    </div>`;
+  }
+  if (io.output_ok) {
+    html += `<hr class="io-separator"><div class="io-block">
+      <div class="io-label output">✅ Output (thành công)</div>
+      <pre class="io-pre">${jsonHL(io.output_ok)}</pre>
+    </div>`;
+  }
+  if (io.output_err) {
+    html += `<hr class="io-separator"><div class="io-block">
+      <div class="io-label output-err">❌ Output (lỗi)</div>
+      <pre class="io-pre">${jsonHL(io.output_err)}</pre>
+    </div>`;
+  }
+  return html || `<div style="padding:20px 0;color:#94a3b8;font-size:13px;text-align:center">Không có I/O example</div>`;
+}
+
+// ─── PANEL ────────────────────────────────────────────────
+let activePanelTab = 'detail';
+
+function switchPanelTab(tab) {
+  activePanelTab = tab;
+  document.querySelectorAll('.ptab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.ptab-content').forEach(c => c.classList.toggle('active', c.dataset.tab === tab));
+}
+
+function openPanel(node) {
+  const panel = document.getElementById('panel');
+  const inner = document.getElementById('panel-inner');
+  panel.classList.remove('hidden');
+  const lc = LAYER_COLORS[node.layer] || LAYER_COLORS.urcard;
+  const d = node.detail || {};
+
+  // Build detail tab content
+  let detailHtml = '';
+  if (d.validates?.length) {
+    detailHtml += `<div class="section-label">✓ Điều kiện validate</div><div class="validate-list">`;
+    d.validates.forEach(v => {
+      detailHtml += `<div class="validate-item">${v.replace(/`([^`]+)`/g, '<code>$1</code>')}</div>`;
+    });
+    detailHtml += `</div>`;
+  }
+  if (d.errors?.length) {
+    detailHtml += `<div class="section-label">⚠ Lỗi có thể xảy ra</div>`;
+    d.errors.forEach(e => detailHtml += `<div class="error-box"><div class="error-code">${e.code}</div><div class="error-desc">${e.desc}</div></div>`);
+  }
+  if (d.success) {
+    detailHtml += `<div class="section-label">✅ Response</div>`;
+    detailHtml += `<div class="success-box"><div class="success-code">${d.success.code}</div><div class="success-desc">${d.success.desc}</div></div>`;
+  }
+  if (d.db?.length) {
+    detailHtml += `<div class="section-label">🗄 DB thay đổi</div>`;
+    d.db.forEach(tbl => {
+      detailHtml += `<div class="entity-block"><div class="entity-name">${tbl.table}</div>`;
+      detailHtml += `<div class="db-rows">`;
+      tbl.rows.forEach(r => {
+        const isIns = r.op === 'insert';
+        const badge = isIns ? '<span class="badge-insert">INSERT</span>' : '<span class="badge-update">UPDATE</span>';
+        const arrowPart = (r.from && r.from !== '—' && r.to && r.to !== '—')
+          ? `<div class="db-row-arrow"><span class="db-row-from">${r.from}</span><span class="db-arrow">→</span><span class="db-row-to">${r.to}</span></div>`
+          : (r.to && r.to !== '—' ? `<div class="db-row-arrow"><span class="db-row-to">${r.to}</span></div>` : '');
+        detailHtml += `<div class="db-row ${isIns ? 'is-insert' : 'is-update'}">
+          <div class="db-row-head">${badge}<span class="db-row-field">${r.field}</span></div>
+          ${arrowPart}
+          ${r.note ? `<div class="db-row-note">${r.note}</div>` : ''}
+        </div>`;
+      });
+      detailHtml += `</div></div>`;
+    });
+  }
+  if (!detailHtml) detailHtml = `<div style="padding:20px 0;color:#94a3b8;font-size:13px;text-align:center">Không có điều kiện validate đặc biệt</div>`;
+
+  const schemaHtml = renderSchemaTab(node.id);
+  const hasSchema = (NODE_SCHEMAS[node.id] || []).length > 0;
+
+  const html = `
+    <div class="panel-header">
+      <button class="panel-close" onclick="closePanel()">✕</button>
+      <div class="panel-layer" style="color:${lc.text}">${lc.label}</div>
+      <div class="panel-title">${node.label.replace(/\n/g,' ')}</div>
+      ${d.desc ? `<div class="panel-desc">${d.desc}</div>` : ''}
+    </div>
+    <div class="ptabs">
+      <div class="ptab active" data-tab="detail" onclick="switchPanelTab('detail')">Chi tiết</div>
+      <div class="ptab${hasSchema ? '' : ' disabled'}" data-tab="schema" onclick="switchPanelTab('schema')" style="${hasSchema ? '' : 'opacity:0.4;cursor:default'}">Schema${hasSchema ? ` (${(NODE_SCHEMAS[node.id]||[]).length})` : ''}</div>
+      <div class="ptab${node.io ? '' : ' disabled'}" data-tab="io" onclick="switchPanelTab('io')" style="${node.io ? '' : 'opacity:0.4;cursor:default'}">I/O</div>
+    </div>
+    <div class="ptab-content active" data-tab="detail">${detailHtml}</div>
+    <div class="ptab-content" data-tab="schema">${schemaHtml}</div>
+    <div class="ptab-content" data-tab="io">${renderIOTab(node)}</div>
+  `;
+
+  inner.innerHTML = html;
+  // restore last active tab if switching nodes
+  if (activePanelTab === 'schema' && hasSchema) switchPanelTab('schema');
+  else if (activePanelTab === 'io' && node.io) switchPanelTab('io');
+  else switchPanelTab('detail');
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.add('hidden');
+}
+
+// ─── ERROR CODES ──────────────────────────────────────────
+const ERROR_CODES = [
+  // 4xx Auth
+  { code:'1001', httpStatus:'401', message:'Unauthorized', desc:'x-profile-id hoặc x-access-token không khớp với bất kỳ client nào, hoặc client đã bị deactivated / soft-deleted', node:'Xác thực client & chữ ký RSA', flow:'B2B' },
+  { code:'1002', httpStatus:'400', message:'Bad Request', desc:'requestTime không đúng định dạng ISO 8601 hoặc chênh lệch so với server time > 20 phút (chống replay attack)', node:'Xác thực client & chữ ký RSA', flow:'B2B' },
+  { code:'1003', httpStatus:'401', message:'Unauthorized', desc:'Chữ ký RSA không hợp lệ — body bị thay đổi sau khi ký, hoặc client dùng sai private key', node:'Xác thực client & chữ ký RSA', flow:'B2B' },
+  { code:'1004', httpStatus:'403', message:'Forbidden', desc:'campaignCode không nằm trong whitelist clients.campaignCode[] của client', node:'Xác thực client & chữ ký RSA', flow:'B2B' },
+  { code:'1005', httpStatus:'401', message:'Unauthorized', desc:'End-user token không hợp lệ hoặc hết hạn', node:'Xác thực end-user', flow:'B2C' },
+  // 4xx Idempotency
+  { code:'1010', httpStatus:'400', message:'Bad Request', desc:'requestId không phải UUID hợp lệ (kiểm tra bằng isUUID)', node:'Ghi log & kiểm tra trùng request', flow:'B2B' },
+  { code:'1011', httpStatus:'400', message:'Duplicate partnerTransactionId', desc:'partnerTransactionId đã tồn tại trong client_redeem_request_logs — client đang gửi lại cùng ID đối tác cho một request khác', node:'Ghi log & kiểm tra trùng request', flow:'B2B' },
+  // 4xx Campaign / Card
+  { code:'1020', httpStatus:'400', message:'Campaign not found', desc:'campaignCode không tìm thấy trong DB hoặc campaign.status không phải active', node:'Validate Campaign', flow:'B2B / B2C' },
+  { code:'1030', httpStatus:'400', message:'Card deactivated', desc:'card.status = deactivated — thẻ đã bị khóa, không thể thực hiện giao dịch', node:'GetOrCreate Card / Tìm thẻ', flow:'B2B / B2C' },
+  { code:'1031', httpStatus:'400', message:'CardIssue not found', desc:'Không có đợt phát hành thẻ (CardIssue) nào đang active cho campaign — không thể tạo thẻ mới', node:'GetOrCreate Card', flow:'B2B' },
+  { code:'1032', httpStatus:'400', message:'Card not found', desc:'End-user chưa có thẻ trong campaign — B2C không tự tạo thẻ, client phải topup trước', node:'Tìm thẻ end-user', flow:'B2C' },
+  // 4xx GiftDetail
+  { code:'1040', httpStatus:'400', message:'GiftDetail not found', desc:'giftDetailId không tồn tại, đã ngưng bán, hoặc không thuộc campaign', node:'Lookup GiftDetail', flow:'B2B / B2C' },
+  { code:'1041', httpStatus:'400', message:'Invalid gift type', desc:'giftDetail.type không hợp lệ cho pool của flow (B2B: topup_points / topup_catalog / evoucher_partner / ...; B2C: chỉ topup_points / topup_catalog)', node:'Lookup GiftDetail', flow:'B2B / B2C' },
+  // 4xx SubPO / Balance
+  { code:'1050', httpStatus:'400', message:'Insufficient SubPO budget', desc:'sub_purchase_orders.availableAmount < giftDetail.amount × quantity — ngân sách B2B không đủ', node:'Kiểm tra & trừ SubPO', flow:'B2B' },
+  { code:'1060', httpStatus:'400', message:'Insufficient points', desc:'Số dư điểm trong giftsetId không đủ để redeem', node:'Kiểm tra số dư điểm', flow:'B2C' },
+  { code:'1061', httpStatus:'400', message:'Insufficient catalog balance', desc:'Số dư lượt trong giftsetId không đủ để redeem', node:'Kiểm tra số dư lượt', flow:'B2C' },
+  // 5xx Fulfill
+  { code:'5001', httpStatus:'500', message:'Fulfill failed — points rolled back', desc:'Provider lỗi hoặc hết hàng. Điểm đã được CREDIT rollback. Kèm transactionId để đối soát', node:'Fulfill thất bại (điểm)', flow:'B2B / B2C' },
+  { code:'5002', httpStatus:'500', message:'Fulfill failed — catalog balance rolled back', desc:'Provider lỗi hoặc hết hàng. Lượt đã được CREDIT rollback. Kèm transactionId để đối soát', node:'Fulfill thất bại (lượt)', flow:'B2B / B2C' },
+  { code:'5003', httpStatus:'500', message:'Fulfill failed', desc:'Provider lỗi hoặc hết hàng (nhánh voucher/quà). Không cần rollback balance vì không trừ trước', node:'Fulfill thất bại (voucher)', flow:'B2B' },
+];
+
+function renderErrorCodes() {
+  const groupDefs = [
+    { key:'auth',    label:'🔐 Authentication & Authorization', color:'#fef3c7', border:'#f59e0b', range:[1001,1009] },
+    { key:'idem',    label:'🔁 Idempotency',                   color:'#ede9fe', border:'#7c3aed', range:[1010,1019] },
+    { key:'camp',    label:'📋 Campaign',                       color:'#dbeafe', border:'#3b82f6', range:[1020,1029] },
+    { key:'card',    label:'💳 Card',                           color:'#dbeafe', border:'#0284c7', range:[1030,1039] },
+    { key:'gift',    label:'🎁 GiftDetail',                     color:'#dcfce7', border:'#22c55e', range:[1040,1049] },
+    { key:'subpo',   label:'💰 SubPO / Budget',                 color:'#fce7f3', border:'#db2777', range:[1050,1059] },
+    { key:'bal',     label:'⚖️ Balance',                        color:'#fce7f3', border:'#db2777', range:[1060,1069] },
+    { key:'fulfill', label:'🚚 Fulfill',                        color:'#fee2e2', border:'#ef4444', range:[5000,5999] },
+  ];
+
+  let html = `<h2 style="font-size:18px;font-weight:700;color:#1e293b;margin:0 0 24px">🚨 Error Codes</h2>`;
+
+  groupDefs.forEach(grp => {
+    const errors = ERROR_CODES.filter(e => {
+      const n = parseInt(e.code);
+      return n >= grp.range[0] && n <= grp.range[1];
+    });
+    if (!errors.length) return;
+    const meta = grp;
+    html += `<div style="margin-bottom:28px">
+      <div style="font-size:13px;font-weight:700;color:${meta.border};background:${meta.color};border:1px solid ${meta.border};border-radius:8px 8px 0 0;padding:8px 16px">${meta.label}</div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;font-size:12.5px">
+        <thead>
+          <tr style="background:#f8fafc">
+            <th style="padding:8px 12px;text-align:left;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;white-space:nowrap;width:110px">Error Code</th>
+            <th style="padding:8px 12px;text-align:left;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;white-space:nowrap;width:50px">HTTP</th>
+            <th style="padding:8px 12px;text-align:left;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;width:180px">Message</th>
+            <th style="padding:8px 12px;text-align:left;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0">Mô tả</th>
+            <th style="padding:8px 12px;text-align:left;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;white-space:nowrap;width:80px">Flow</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    errors.forEach((e, i) => {
+      const statusColor = e.httpStatus.startsWith('5') ? '#dc2626' : e.httpStatus.startsWith('4') ? '#d97706' : '#16a34a';
+      const bg = i % 2 === 0 ? '#fff' : '#f8fafc';
+      html += `<tr style="background:${bg}">
+        <td style="padding:8px 12px;font-family:monospace;font-weight:700;color:#1e293b;border-bottom:1px solid #f1f5f9">${e.code}</td>
+        <td style="padding:8px 12px;font-weight:700;color:${statusColor};border-bottom:1px solid #f1f5f9">${e.httpStatus}</td>
+        <td style="padding:8px 12px;font-family:monospace;font-size:11.5px;color:#374151;border-bottom:1px solid #f1f5f9">${e.message}</td>
+        <td style="padding:8px 12px;color:#374151;border-bottom:1px solid #f1f5f9;line-height:1.5">${e.desc}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9"><span style="font-size:11px;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;white-space:nowrap">${e.flow}</span></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  });
+
+  document.getElementById('error-codes-view').querySelector('div').innerHTML = html;
+}
+
+// ─── TAB SWITCH ───────────────────────────────────────────
+let currentTab = 'client';
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active','green'));
+  const main = document.querySelector('.main');
+  const errView = document.getElementById('error-codes-view');
+  const hint = document.querySelector('.hint');
+
+  if (presentationActive) exitPresentationMode();
+
+  const exView = document.getElementById('example-view');
+
+  if (tab === 'errors') {
+    document.getElementById('tab-errors-btn').classList.add('active');
+    main.style.display = 'none';
+    hint.style.display = 'none';
+    errView.style.display = 'block';
+    exView.style.display = 'none';
+    renderErrorCodes();
+    closePanel();
+    return;
+  }
+
+  if (tab === 'example') {
+    document.getElementById('tab-example-btn').classList.add('active');
+    main.style.display = 'none';
+    hint.style.display = 'none';
+    errView.style.display = 'none';
+    exStep = 0;
+    renderExampleView();
+    closePanel();
+    return;
+  }
+
+  main.style.display = '';
+  hint.style.display = '';
+  errView.style.display = 'none';
+  exView.style.display = 'none';
+
+  if (tab === 'client') {
+    document.getElementById('tab-client-btn').classList.add('active');
+    renderFlow(CLIENT_FLOW);
+  } else {
+    document.getElementById('tab-enduser-btn').classList.add('active','green');
+    renderFlow(ENDUSER_FLOW);
+  }
+  closePanel();
+}
+
+// ─── PRESENTATION MODE ────────────────────────────────────
+let presentationActive = false;
+let presentationStep = 0;
+let presentationOrder = [];
+let presentationFlow = null;
+
+function buildPresentationOrder(flow) {
+  // BFS/topological walk — follow edges in order, skip duplicates
+  const edgeMap = {};
+  flow.edges.forEach(e => {
+    if (!edgeMap[e.from]) edgeMap[e.from] = [];
+    edgeMap[e.from].push(e.to);
+  });
+  const visited = new Set();
+  const order = [];
+  const queue = [flow.nodes[0].id];
+  while (queue.length) {
+    const id = queue.shift();
+    if (visited.has(id)) continue;
+    visited.add(id);
+    order.push(id);
+    (edgeMap[id] || []).forEach(next => { if (!visited.has(next)) queue.push(next); });
+  }
+  // add any nodes not reachable via edges
+  flow.nodes.forEach(n => { if (!visited.has(n.id)) order.push(n.id); });
+  return order;
+}
+
+function applyPresentationStep() {
+  if (!presentationActive) return;
+  const activeId = presentationOrder[presentationStep];
+  const svg = document.getElementById('flowchart');
+
+  // dim/undim nodes
+  svg.querySelectorAll('.flow-node').forEach(g => {
+    const id = g.getAttribute('data-id');
+    const isActive = id === activeId;
+    g.style.opacity = isActive ? '1' : '0.18';
+    g.style.pointerEvents = isActive ? '' : 'none';
+    const rect = g.querySelector('rect,polygon');
+    if (rect) rect.setAttribute('stroke-width', isActive ? 3 : 1.5);
+  });
+
+  // dim/undim edges (all path/text groups between nodes)
+  svg.querySelectorAll('.flow-edge').forEach(g => {
+    const from = g.getAttribute('data-from');
+    const to = g.getAttribute('data-to');
+    const isActive = from === activeId || to === activeId;
+    g.style.opacity = isActive ? '1' : '0.1';
+  });
+
+  // update button states
+  document.getElementById('pres-prev').disabled = presentationStep === 0;
+  document.getElementById('pres-next').disabled = presentationStep === presentationOrder.length - 1;
+  document.getElementById('pres-counter').textContent = `${presentationStep + 1} / ${presentationOrder.length}`;
+
+  // open panel for active node
+  const nodeMap = {};
+  presentationFlow.nodes.forEach(n => nodeMap[n.id] = n);
+  if (nodeMap[activeId]) openPanel(nodeMap[activeId]);
+}
+
+function enterPresentationMode() {
+  const flow = currentTab === 'enduser' ? ENDUSER_FLOW : CLIENT_FLOW;
+  presentationFlow = flow;
+  presentationOrder = buildPresentationOrder(flow);
+  presentationStep = 0;
+  presentationActive = true;
+  document.getElementById('pres-bar').style.display = 'flex';
+  document.getElementById('pres-enter').style.display = 'none';
+  applyPresentationStep();
+}
+
+function exitPresentationMode() {
+  presentationActive = false;
+  document.getElementById('pres-bar').style.display = 'none';
+  document.getElementById('pres-enter').style.display = '';
+  // restore all nodes
+  const svg = document.getElementById('flowchart');
+  svg.querySelectorAll('.flow-node').forEach(g => {
+    g.style.opacity = '1';
+    g.style.pointerEvents = '';
+    const rect = g.querySelector('rect,polygon');
+    if (rect) rect.setAttribute('stroke-width', 2);
+  });
+  svg.querySelectorAll('.flow-edge').forEach(g => { g.style.opacity = '1'; });
+  closePanel();
+}
+
+function presNext() {
+  if (presentationStep < presentationOrder.length - 1) { presentationStep++; applyPresentationStep(); }
+}
+function presPrev() {
+  if (presentationStep > 0) { presentationStep--; applyPresentationStep(); }
+}
+
+// keyboard navigation
+document.addEventListener('keydown', e => {
+  if (!presentationActive) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); presNext(); }
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); presPrev(); }
+  if (e.key === 'Escape') exitPresentationMode();
+});
+
+// ═══════════════════════════════════════════════════════════
+// EXAMPLE SCENARIOS
+// ═══════════════════════════════════════════════════════════
+const EXAMPLES = {
+  topup_points: {
+    label: 'Topup điểm (B2B)',
+    desc: 'Client tặng 50,000 điểm cho end-user qua API gift/execute',
+    steps: [
+      {
+        id: 'request',
+        label: 'Gửi request',
+        sublabel: 'POST /api/v1/client/gift/execute',
+        note: 'Client gửi request với campaignCode, giftDetailId (topup_points), siteUserId, requestId và partnerTransactionId. Chữ ký RSA SHA256 ký toàn bộ body (bỏ field signature, sort alpha).',
+        validates: [
+          { check: 'Content-Type: application/json', result: '✓ header hợp lệ' },
+          { check: 'x-profile-id có trong header', result: '"prf-vib-001"' },
+          { check: 'x-access-token có trong header', result: '"tok-vib-acc-xyz"' },
+          { check: 'body.requestId không rỗng (chuỗi bất kỳ — không bắt buộc UUID)', result: '"req-a1b2c3d4-e5f6-7890-abcd" ✓' },
+          { check: 'body.partnerTransactionId không rỗng', result: '"VIB-TXN-20250101-000123" ✓' },
+          { check: 'body.requestTime là ISO 8601 hợp lệ', result: '2025-01-01T10:00:00.000Z ✓' },
+          { check: 'Chênh lệch requestTime vs now ≤ 20 phút', result: 'Δ = 0s ✓' },
+        ],
+        request: {
+          method: 'POST', url: '/api/v1/client/gift/execute',
+          headers: { 'x-profile-id': 'prf-vib-001', 'x-access-token': 'tok-vib-acc-xyz' },
+          body: {
+            campaignCode: 'VIB_LOYALTY_2025',
+            giftDetailId: 'gd-550e8400-e29b-topup-pts',
+            quantity: 1,
+            requestId: 'req-a1b2c3d4-e5f6-7890-abcd',
+            partnerTransactionId: 'VIB-TXN-20250101-000123',
+            requestTime: '2025-01-01T10:00:00.000Z',
+            siteUserId: 'user-vib-98765',
+            signature: '<RSA SHA256 base64>'
+          }
+        },
+        db: []
+      },
+      {
+        id: 'auth',
+        label: 'Xác thực client',
+        sublabel: 'Lookup clients table',
+        note: 'Tìm client theo x-profile-id + x-access-token. Verify chữ ký RSA bằng clients.clientPublicKey. Kiểm tra campaignCode trong whitelist.',
+        validates: [
+          { check: 'Lookup clients WHERE profileId = "prf-vib-001" AND accessToken = "tok-vib-acc-xyz"', result: 'Tìm thấy clients.id = 12' },
+          { check: 'clients.status = "activated"', result: '"activated" ✓' },
+          { check: 'clients.deletedAt IS NULL', result: 'null ✓' },
+          { check: 'Verify RSA signature bằng clients.clientPublicKey', result: 'signature hợp lệ ✓' },
+          { check: '"VIB_LOYALTY_2025" ∈ clients.campaignCode[]', result: '["VIB_LOYALTY_2025"] → ✓' },
+        ],
+        db: [
+          { table: 'clients', op: 'ctx', label: 'Đọc để xác thực', record: {
+            id: 12, code: 'VIB', profileId: 'prf-vib-001', accessToken: 'tok-vib-acc-xyz',
+            status: 'activated', campaignCode: ['VIB_LOYALTY_2025'], callbackUrl: 'https://vib.vn/webhook/urcard'
+          }}
+        ]
+      },
+      {
+        id: 'idem',
+        label: 'Ghi log idempotency',
+        sublabel: 'INSERT client_redeem_request_logs',
+        note: 'INSERT record vào MongoDB với requestId và partnerTransactionId (đều unique index). Nếu trùng requestId → trả cached result. Nếu trùng partnerTransactionId → 400.',
+        validates: [
+          { check: 'requestId không rỗng (chuỗi bất kỳ — không bắt buộc UUID)', result: '"req-a1b2c3d4-e5f6-7890-abcd" ✓' },
+          { check: 'partnerTransactionId không rỗng', result: '"VIB-TXN-20250101-000123" ✓' },
+          { check: 'INSERT vào client_redeem_request_logs', result: 'INSERT thành công' },
+          { check: 'Không có duplicate key (11000) trên requestId', result: 'requestId mới → tiếp tục' },
+          { check: 'Không có duplicate key (11000) trên partnerTransactionId', result: 'partnerTransactionId mới → tiếp tục' },
+        ],
+        db: [
+          { table: 'client_redeem_request_logs (MongoDB)', op: 'ins', label: 'INSERT mới', record: {
+            _id: 'ObjectId("679abc123def456789012345")',
+            requestId: 'req-a1b2c3d4-e5f6-7890-abcd',
+            partnerTransactionId: 'VIB-TXN-20250101-000123',
+            createdAt: '2025-01-01T10:00:00.123Z',
+            content: '{ ...request body... }',
+            reason: null
+          }}
+        ]
+      },
+      {
+        id: 'campaign',
+        label: 'Validate campaign',
+        sublabel: 'Lookup campaigns',
+        note: 'Tìm campaign theo campaignCode, kiểm tra status=active. Lấy cấu hình is_testing, configMultipleCardPerPhone.',
+        validates: [
+          { check: 'Lookup campaign WHERE code = "VIB_LOYALTY_2025"', result: 'Tìm thấy campaigns.id = 77' },
+          { check: 'campaign.status = "active"', result: '"active" ✓' },
+          { check: 'campaign.deletedAt IS NULL', result: 'null ✓' },
+        ],
+        db: [
+          { table: 'campaigns', op: 'ctx', label: 'Đọc để validate', record: {
+            id: 77, code: 'VIB_LOYALTY_2025', status: 'active',
+            'params.is_testing': false, 'params.multiple_cards_per_phone_number': false
+          }}
+        ]
+      },
+      {
+        id: 'card',
+        label: 'GetOrCreate Card',
+        sublabel: 'INSERT customers + cards + tokens',
+        note: 'getOrCreateBySiteUserId("user-vib-98765") → tạo customer mới. Tìm card theo customerId + campaignId → chưa có → tạo mới trong 1 DB transaction: prepaid_card_tokens + catalog_card_tokens + card + giảm card_issues.inventory.',
+        validates: [
+          { check: 'Lookup customer WHERE siteUserId = "user-vib-98765"', result: 'Không tìm thấy → INSERT mới' },
+          { check: 'findExistedCardAndLockCardExpired({ customerId:5001, campaignId:77 })', result: 'Chưa có card → tạo mới' },
+          { check: 'configMultipleCardPerPhone = false → chỉ tạo 1 card/user', result: 'false → tạo 1 card mới' },
+          { check: 'Lookup CardIssue oldest-active cho campaignId=77', result: 'cardIssueId = 14 ✓' },
+          { check: 'card_issues.inventory > 0', result: 'inventory = 500 > 0 ✓' },
+          { check: 'Sinh số thẻ Luhn(publisher.alias + cardIssue.alias + cardAlias)', result: '"4111000000020001" ✓' },
+          { check: 'DB transaction: INSERT prepaid_card_tokens, catalog_card_tokens, cards, DECREMENT inventory', result: 'Commit thành công ✓' },
+        ],
+        db: [
+          { table: 'customers', op: 'ins', label: 'INSERT customer', record: {
+            id: 5001, siteUserId: 'user-vib-98765', status: 'active',
+            createdAt: '2025-01-01T10:00:00.200Z'
+          }},
+          { table: 'prepaid_card_tokens', op: 'ins', label: 'INSERT token điểm', record: {
+            id: 8801, prepaidCardId: 3, cardIssueId: 14, campaignId: 77, customerId: 5001,
+            balance: 0, availableBalance: 0, status: 'activated',
+            isChangingBalance: false, expiration: '2026-12-31T23:59:59.000Z'
+          }},
+          { table: 'catalog_card_tokens', op: 'ins', label: 'INSERT token lượt', record: {
+            id: 9901, catalogCardId: 2, cardIssueId: 14, campaignId: 77, customerId: 5001,
+            status: 'activated', isChangingBalance: false, expiration: '2026-12-31T23:59:59.000Z'
+          }},
+          { table: 'cards', op: 'ins', label: 'INSERT card', record: {
+            id: 20001, customerId: 5001, campaignId: 77, cardIssueId: 14,
+            number: '4111000000020001', status: 'activated',
+            prepaidCardTokenId: 8801, catalogCardTokenId: 9901,
+            aliasId: 'uuid-card-alias-abcd', expiration: '2026-12-31T23:59:59.000Z'
+          }},
+          { table: 'card_issues', op: 'upd', label: 'Giảm inventory', record: {
+            id: 14, 'inventory (before)': 500, 'inventory (after)': 499
+          }}
+        ]
+      },
+      {
+        id: 'subpo',
+        label: 'Kiểm tra & trừ SubPO',
+        sublabel: 'UPDATE sub_purchase_orders',
+        note: 'Tìm SubPO phù hợp cho campaignId với đủ điểm. Trừ 50,000 điểm khỏi SubPO để giữ ngân sách.',
+        validates: [
+          { check: 'Lookup SubPO WHERE campaignId=77 AND type=PREPAID AND remainingAmount >= 50,000', result: 'subPOId = 301 ✓' },
+          { check: 'subPO.status = "active"', result: '"active" ✓' },
+          { check: 'remainingAmount (2,500,000) >= amount × qty (50,000 × 1)', result: '2,500,000 ≥ 50,000 ✓' },
+          { check: 'DECREMENT sub_purchase_orders.remainingAmount -= 50,000', result: '2,500,000 → 2,450,000 ✓' },
+        ],
+        db: [
+          { table: 'sub_purchase_orders', op: 'upd', label: 'Trừ ngân sách SubPO', record: {
+            id: 301, campaignId: 77,
+            'remainingAmount (before)': '2,500,000', 'remainingAmount (after)': '2,450,000',
+            note: '-50,000 điểm'
+          }}
+        ]
+      },
+      {
+        id: 'lock_credit',
+        label: 'Lock & CREDIT điểm',
+        sublabel: 'UPDATE prepaid_card_tokens',
+        note: 'Lock thẻ bằng isChangingBalance=true. Tạo topup_request. CREDIT 50,000 điểm với FIFO entry mới gắn subPOId. Mở khóa sau khi xong.',
+        validates: [
+          { check: 'prepaid_card_tokens.isChangingBalance = false (chưa bị lock)', result: 'false ✓ → có thể lock' },
+          { check: 'UPDATE isChangingBalance = true (acquire lock)', result: 'Lock thành công ✓' },
+          { check: 'CREDIT balance += 50,000', result: '0 → 50,000 ✓' },
+          { check: 'CREDIT availableBalance += 50,000', result: '0 → 50,000 ✓' },
+          { check: 'Thêm FIFO entry { subPOId:301, amount:50000, expiredAt:"2026-12-31" }', result: 'fifo = [1 entry] ✓' },
+          { check: 'INSERT topup_request với reason.extraData.partnerTransactionId', result: 'topupRequestId = 70001 ✓' },
+          { check: 'INSERT transaction type=client-topup-prepaid-card, status=successful', result: 'transactionId = 60001 ✓' },
+          { check: 'UPDATE isChangingBalance = false (release lock)', result: 'Unlock ✓' },
+        ],
+        db: [
+          { table: 'prepaid_card_tokens', op: 'upd', label: 'Lock → CREDIT → Unlock', record: {
+            id: 8801,
+            'isChangingBalance': 'false → true → false',
+            'balance (before)': 0, 'balance (after)': 50000,
+            'availableBalance (before)': 0, 'availableBalance (after)': 50000,
+            'fifo': '[] → [{ subPOId:301, amount:50000, expiredAt:"2026-12-31" }]'
+          }},
+          { table: 'topup_requests', op: 'ins', label: 'INSERT topup_request', record: {
+            id: 70001, cardId: 20001, prepaidCardTokenId: 8801,
+            amount: 50000, type: 'AUTO', status: 'success',
+            'reason.key': 'CLIENT_TOPUP',
+            'reason.extraData.partnerTransactionId': 'VIB-TXN-20250101-000123',
+            'reason.extraData.client': 'VIB'
+          }},
+          { table: 'transactions', op: 'ins', label: 'INSERT transaction', record: {
+            id: 60001, cardId: 20001, customerId: 5001, campaignId: 77,
+            type: 'client-topup-prepaid-card', status: 'successful',
+            amount: 50000,
+            'fifo': '[{ subPOId:301, giftsetId:"gs-pts-001", amount:50000 }]'
+          }}
+        ]
+      },
+      {
+        id: 'callback',
+        label: 'Callback về client (nếu pending)',
+        sublabel: 'POST → clients.callbackUrl — CHỈ khi status=pending',
+        note: '⚠️ Callback CHỈ được gửi nếu response trước đó trả status=pending (Rewards Core xử lý async). Nếu status=completed thì client đã có kết quả ngay — KHÔNG có callback. POST đến https://vib.vn/webhook/urcard với header x-profile-id + x-access-token. Retry tối đa 5 lần exponential backoff.',
+        validates: [
+          { check: 'Đọc clients.callbackUrl cho clientId = 12', result: '"https://vib.vn/webhook/urcard" ✓' },
+          { check: 'INSERT callback_logs { direction:"outbound", status:"pending" }', result: 'logId = ObjectId("...") ✓' },
+          { check: 'POST https://vib.vn/webhook/urcard với header x-profile-id + x-access-token', result: 'HTTP 200 OK ✓' },
+          { check: 'Response HTTP status 2xx', result: '200 → UPDATE status = "success" ✓' },
+        ],
+        request: {
+          method: 'POST', url: 'https://vib.vn/webhook/urcard (outbound)',
+          headers: { 'x-profile-id': 'prf-vib-001', 'x-access-token': 'tok-vib-acc-xyz' },
+          body: {
+            event: 'gift.execute.success',
+            requestId: 'req-a1b2c3d4-e5f6-7890-abcd',
+            partnerTransactionId: 'VIB-TXN-20250101-000123',
+            status: 'success',
+            data: { transactionId: 60001, amount: 50000, newBalance: 50000 }
+          }
+        },
+        db: [
+          { table: 'callback_logs (MongoDB)', op: 'ins', label: 'INSERT callback log', record: {
+            _id: 'ObjectId("679abc000001")',
+            direction: 'outbound', clientId: 12,
+            requestId: 'req-a1b2c3d4-e5f6-7890-abcd',
+            partnerTransactionId: 'VIB-TXN-20250101-000123',
+            callbackUrl: 'https://vib.vn/webhook/urcard',
+            status: 'success', attempts: 1,
+            lastResponseCode: 200
+          }}
+        ]
+      }
+    ]
+  },
+
+  topup_catalog: {
+    label: 'Topup lượt (B2B)',
+    desc: 'Client tặng 3 lượt đổi quà cho end-user qua API gift/execute',
+    steps: [
+      {
+        id: 'request',
+        label: 'Gửi request',
+        sublabel: 'POST /api/v1/client/gift/execute',
+        note: 'Client gửi request với giftDetailId loại topup_catalog (lượt), quantity=3.',
+        validates: [
+          { check: 'x-profile-id + x-access-token có trong header', result: 'prf-vib-001 / tok-vib-acc-xyz ✓' },
+          { check: 'body.requestId không rỗng (chuỗi bất kỳ — không bắt buộc UUID)', result: '"req-b2c3d4e5-..." ✓' },
+          { check: 'body.partnerTransactionId không rỗng', result: '"VIB-TXN-20250101-000124" ✓' },
+          { check: 'body.requestTime ISO 8601 và trong 20 phút', result: 'Δ = 0s ✓' },
+          { check: 'body.quantity > 0', result: '3 > 0 ✓' },
+        ],
+        request: {
+          method: 'POST', url: '/api/v1/client/gift/execute',
+          headers: { 'x-profile-id': 'prf-vib-001', 'x-access-token': 'tok-vib-acc-xyz' },
+          body: {
+            campaignCode: 'VIB_LOYALTY_2025',
+            giftDetailId: 'gd-770e8400-e29b-topup-cat',
+            quantity: 3,
+            requestId: 'req-b2c3d4e5-f6a7-8901-bcde',
+            partnerTransactionId: 'VIB-TXN-20250101-000124',
+            requestTime: '2025-01-01T11:00:00.000Z',
+            siteUserId: 'user-vib-98765',
+            signature: '<RSA SHA256 base64>'
+          }
+        },
+        db: []
+      },
+      {
+        id: 'auth_idem',
+        label: 'Xác thực & idempotency',
+        sublabel: 'Tương tự topup điểm',
+        note: 'Các bước xác thực client, validate campaign và ghi log idempotency giống hệt luồng topup điểm. Bước này tổng hợp cả 3 để tập trung vào phần khác biệt.',
+        validates: [
+          { check: 'Lookup clients WHERE profileId + accessToken khớp', result: 'clients.id = 12 ✓' },
+          { check: 'Verify RSA signature', result: 'Hợp lệ ✓' },
+          { check: '"VIB_LOYALTY_2025" ∈ clients.campaignCode[]', result: '✓' },
+          { check: 'campaign.status = "active"', result: '"active" ✓' },
+          { check: 'INSERT client_redeem_request_logs — không duplicate', result: 'INSERT thành công ✓' },
+        ],
+        db: [
+          { table: 'client_redeem_request_logs (MongoDB)', op: 'ins', label: 'INSERT idempotency log', record: {
+            requestId: 'req-b2c3d4e5-f6a7-8901-bcde',
+            partnerTransactionId: 'VIB-TXN-20250101-000124',
+            createdAt: '2025-01-01T11:00:00.100Z'
+          }}
+        ]
+      },
+      {
+        id: 'card_existing',
+        label: 'Tìm card hiện có',
+        sublabel: 'findExistedCardAndLockCardExpired',
+        note: 'End-user này đã có card (tạo ở lần topup điểm trước). configMultipleCardPerPhone=false → dùng lại card cũ, không tạo mới.',
+        validates: [
+          { check: 'getOrCreateBySiteUserId("user-vib-98765")', result: 'customerId = 5001 (đã có) ✓' },
+          { check: 'findExistedCardAndLockCardExpired({ customerId:5001, campaignId:77 })', result: 'cardId = 20001 ✓' },
+          { check: 'card.status = "activated"', result: '"activated" ✓' },
+          { check: 'configMultipleCardPerPhone = false → dùng lại card', result: 'Không tạo card mới ✓' },
+        ],
+        db: [
+          { table: 'cards', op: 'ctx', label: 'Đọc card hiện có', record: {
+            id: 20001, customerId: 5001, campaignId: 77, status: 'activated',
+            prepaidCardTokenId: 8801, catalogCardTokenId: 9901
+          }}
+        ]
+      },
+      {
+        id: 'subpo_cat',
+        label: 'Kiểm tra & trừ SubPO lượt',
+        sublabel: 'UPDATE sub_purchase_orders',
+        note: 'Tìm SubPO cho campaignId loại lượt. Trừ 3 lượt khỏi SubPO.',
+        validates: [
+          { check: 'Lookup SubPO WHERE campaignId=77 AND type=CATALOG AND remainingQuantity >= 3', result: 'subPOId = 302 ✓' },
+          { check: 'subPO.status = "active"', result: '"active" ✓' },
+          { check: 'remainingQuantity (1000) >= quantity (3)', result: '1000 ≥ 3 ✓' },
+          { check: 'DECREMENT remainingQuantity -= 3', result: '1000 → 997 ✓' },
+        ],
+        db: [
+          { table: 'sub_purchase_orders', op: 'upd', label: 'Trừ ngân sách lượt', record: {
+            id: 302, campaignId: 77,
+            'remainingQuantity (before)': 1000, 'remainingQuantity (after)': 997,
+            note: '-3 lượt'
+          }}
+        ]
+      },
+      {
+        id: 'credit_catalog',
+        label: 'CREDIT lượt vào catalog token',
+        sublabel: 'INSERT catalog_card_fifos + UPDATE token',
+        note: 'Tạo FIFO entry mới trong catalog_card_fifos với quantity=3, gắn subPOId và giftsetId. Cộng vào totalQuantity của token.',
+        validates: [
+          { check: 'catalog_card_tokens.isChangingBalance = false', result: 'false → có thể lock ✓' },
+          { check: 'UPDATE isChangingBalance = true (acquire lock)', result: 'Lock ✓' },
+          { check: 'INSERT catalog_card_fifos entry { quantity:3, subPOId:302, tags:["giftset:gs-cat-001"] }', result: 'fifoId = 5501 ✓' },
+          { check: 'INSERT transaction type=client-topup-catalog-card, status=successful', result: 'transactionId = 60002 ✓' },
+          { check: 'UPDATE isChangingBalance = false (release lock)', result: 'Unlock ✓' },
+        ],
+        db: [
+          { table: 'catalog_card_fifos', op: 'ins', label: 'INSERT FIFO entry lượt', record: {
+            id: 5501, catalogCardTokenId: 9901, quantity: 3,
+            'tags': '["giftset:gs-cat-001"]',
+            subPOId: 302, expiration: '2026-06-30T23:59:59.000Z',
+            transactionId: null, createdAt: '2025-01-01T11:00:00.300Z'
+          }},
+          { table: 'transactions', op: 'ins', label: 'INSERT transaction', record: {
+            id: 60002, cardId: 20001, customerId: 5001, campaignId: 77,
+            type: 'client-topup-catalog-card', status: 'successful',
+            amount: 3, note: 'topup 3 lượt'
+          }}
+        ]
+      },
+      {
+        id: 'callback_cat',
+        label: 'Callback về client (nếu pending)',
+        sublabel: 'POST → clients.callbackUrl — CHỈ khi status=pending',
+        note: '⚠️ Callback CHỈ gửi nếu response trả status=pending. Nếu status=completed → client đã có kết quả ngay, không callback. POST kết quả topup lượt về VIB.',
+        validates: [
+          { check: 'Đọc clients.callbackUrl cho clientId = 12', result: '"https://vib.vn/webhook/urcard" ✓' },
+          { check: 'INSERT callback_logs { direction:"outbound", status:"pending" }', result: 'INSERT ✓' },
+          { check: 'POST đến callbackUrl với header x-profile-id + x-access-token', result: 'HTTP 200 OK ✓' },
+          { check: 'UPDATE callback_logs.status = "success"', result: '✓' },
+        ],
+        request: {
+          method: 'POST', url: 'https://vib.vn/webhook/urcard (outbound)',
+          headers: { 'x-profile-id': 'prf-vib-001', 'x-access-token': 'tok-vib-acc-xyz' },
+          body: {
+            event: 'gift.execute.success',
+            requestId: 'req-b2c3d4e5-f6a7-8901-bcde',
+            partnerTransactionId: 'VIB-TXN-20250101-000124',
+            status: 'success',
+            data: { transactionId: 60002, quantity: 3, totalCatalogBalance: 3 }
+          }
+        },
+        db: [
+          { table: 'callback_logs (MongoDB)', op: 'ins', label: 'INSERT callback log', record: {
+            direction: 'outbound', clientId: 12,
+            requestId: 'req-b2c3d4e5-f6a7-8901-bcde',
+            partnerTransactionId: 'VIB-TXN-20250101-000124',
+            status: 'success', attempts: 1, lastResponseCode: 200
+          }}
+        ]
+      }
+    ]
+  },
+
+  b2c_points: {
+    label: 'Dùng điểm (B2C)',
+    desc: 'End-user dùng 50,000 điểm (balance chung) để đổi quà qua paymentWithBalance — flow: lock → hold availableBalance → order/txn → Rewards Core → charge balance',
+    steps: [
+      {
+        id: 'request',
+        label: 'Gửi request',
+        sublabel: 'POST /api/v1/enduser/gift/execute (white-label)',
+        note: 'End-user gọi API với Bearer JWT hoặc credentials white-label. requestId do client tự sinh — KHÔNG bắt buộc UUID, có thể là chuỗi bất kỳ (timestamp, seq number…). Không có partnerTransactionId trong B2C.',
+        validates: [
+          { check: 'Authorization header hợp lệ (Bearer JWT hoặc credentials)', result: 'JWT valid ✓' },
+          { check: 'body.requestId không rỗng (bất kỳ chuỗi — không bắt buộc UUID)', result: '"eu-20250101-REQ-0042" ✓' },
+          { check: 'body.cardId không rỗng (hoặc cardNumber)', result: 'cardId = 20001 ✓' },
+          { check: 'body.giftDetailId không rỗng', result: '"gd-pts-voucher-001" ✓' },
+          { check: 'body.balance > 0 (số điểm muốn dùng)', result: '50000 ✓' },
+        ],
+        request: {
+          method: 'POST', url: '/api/v1/enduser/gift/execute',
+          headers: { 'Authorization': 'Bearer eyJhbGciOiJSUzI1NiJ9...', 'Content-Type': 'application/json' },
+          body: {
+            client: 'VIB',
+            campaignCode: 'VIB_LOYALTY_2025',
+            requestId: 'eu-20250101-REQ-0042',
+            cardId: 20001,
+            siteUserId: 'user-vib-12345',
+            giftDetailId: 'gd-pts-voucher-001',
+            balance: 50000
+          }
+        },
+        db: []
+      },
+      {
+        id: 'auth_card_b2c',
+        label: 'Xác thực & tìm thẻ/token',
+        sublabel: 'Lookup card → prepaidCardToken + lock',
+        note: 'Tìm card theo cardId, lookup prepaidCardToken. Ngay sau khi có token, SET isChangingBalance=true để lock — ngăn request song song ghi đè balance.',
+        validates: [
+          { check: 'Verify JWT / credentials', result: 'Hợp lệ ✓' },
+          { check: 'Lookup card WHERE id=20001 AND status="activated"', result: 'cardId=20001, prepaidCardTokenId=8801 ✓' },
+          { check: 'Lookup customer WHERE id=card.customerId', result: 'customerId=5001 ✓' },
+          { check: 'Lookup prepaidCardToken WHERE id=8801 AND status="activated"', result: 'token OK ✓' },
+          { check: 'SET prepaidCardToken.isChangingBalance = true (lock ngay lập tức)', result: 'Locked ✓' },
+          { check: 'Lookup campaign, rule cho campaignId=77', result: 'campaign active, rule found ✓' },
+        ],
+        db: [
+          { table: 'cards', op: 'ctx', label: 'Đọc thẻ', record: {
+            id: 20001, status: 'activated', customerId: 5001,
+            campaignId: 77, prepaidCardTokenId: 8801
+          }},
+          { table: 'prepaid_card_tokens', op: 'upd', label: 'Lock isChangingBalance', record: {
+            id: 8801, 'isChangingBalance': 'false → true'
+          }}
+        ]
+      },
+      {
+        id: 'check_balance_b2c',
+        label: 'Kiểm tra balance & tính total',
+        sublabel: 'availableBalance chung — không lọc giftsetId',
+        note: '⚠️ Khác B2B topup: B2C đổi quà dùng availableBalance CHUNG của prepaid_card_tokens (không phân theo giftsetId). Tính subtotal từ price của gift lấy qua Rewards Core getGiftVouchersDetail(giftDetailId), cộng appFee → total. Kiểm tra availableBalance >= body.balance và availableBalance >= total.',
+        validates: [
+          { check: 'Gọi Rewards Core getGiftVouchersDetail(giftDetailId) — lấy price, type, brand', result: 'price=50000, type=3 (evoucher) ✓' },
+          { check: 'Gọi Rewards Core calcAppFee — tính phí vận hành', result: 'appFee=0 ✓' },
+          { check: 'subTotal = gift.price × 1 (mặc định 1 quà)', result: '50,000 ✓' },
+          { check: 'total = subTotal + appFee = 50,000 + 0', result: '50,000 ✓' },
+          { check: 'body.balance (50,000) khớp total (50,000)', result: 'Khớp ✓' },
+          { check: 'getPrepaidBalance(availableBalance, fifo, isUsingPO…) >= total', result: '50,000 ≥ 50,000 ✓' },
+        ],
+        db: [
+          { table: 'prepaid_card_tokens', op: 'ctx', label: 'Đọc balance (chung)', record: {
+            id: 8801,
+            balance: 50000,
+            availableBalance: 50000,
+            '⚠️ ghi chú': 'balance KHÔNG phân theo giftsetId — là tổng điểm của thẻ'
+          }}
+        ]
+      },
+      {
+        id: 'order_txn_b2c',
+        label: 'Tạo Order + Transaction pending',
+        sublabel: 'INSERT orders + transactions + holdAvailableBalance',
+        note: 'INSERT order (pending) → holdCardAvailableBalance (trừ vào availableBalance để giữ chỗ) → INSERT transaction (pending). Thứ tự này đảm bảo nếu bước sau lỗi, rollback được đúng số dư.',
+        validates: [
+          { check: 'INSERT orders { status:"pending", total:50000, type:"online" }', result: 'orderId=40002 ✓' },
+          { check: 'holdCardAvailableBalance(cardId, total=50000)', result: 'availableBalance: 50,000 → 0 ✓' },
+          { check: 'INSERT transactions { type:"client-prepaid-card-payment", status:"pending" }', result: 'transactionId=60004 ✓' },
+        ],
+        db: [
+          { table: 'orders', op: 'ins', label: 'INSERT order (pending)', record: {
+            id: 40002, status: 'pending', total: 50000, subTotal: 50000,
+            customerId: 5001, cardId: 20001,
+            'channelDetail': '{ source:"VIB", siteUserId:"user-vib-12345" }'
+          }},
+          { table: 'prepaid_card_tokens', op: 'upd', label: 'holdAvailableBalance', record: {
+            id: 8801,
+            'availableBalance (before)': 50000, 'availableBalance (after)': 0,
+            '⚠️ ghi chú': 'hold trước khi gọi UrBox — nếu UrBox fail thì release lại'
+          }},
+          { table: 'transactions', op: 'ins', label: 'INSERT transaction (pending)', record: {
+            id: 60004, orderId: 40002, cardId: 20001, customerId: 5001,
+            type: 'client-prepaid-card-payment', status: 'pending',
+            amount: 50000, prepaidCardTokenId: 8801
+          }}
+        ]
+      },
+      {
+        id: 'buy_voucher_b2c',
+        label: 'Gọi Rewards Core buyVouchers',
+        sublabel: 'POST UrBox API → nhận voucher code',
+        note: 'B2C cũng gọi Rewards Core để fulfill quà — giống B2B. Gift Service trả về voucher code/link. Nếu Gift Service lỗi → auto rollback: release availableBalance, cancel order/transaction.',
+        validates: [
+          { check: 'Gọi Rewards Core buyVouchers(giftDetailId, siteUserId, transactionCode)', result: 'status=200, done=1 ✓' },
+          { check: 'response.data.cart.money_total === total (50,000)', result: 'Khớp ✓' },
+          { check: 'Nhận voucher code từ Rewards Core', result: '"STBK-XXXX-YYYY" ✓' },
+        ],
+        db: []
+      },
+      {
+        id: 'charge_complete_b2c',
+        label: 'Charge balance & hoàn tất',
+        sublabel: 'chargeBalance FIFO → UPDATE orders/txn → unlock',
+        note: 'chargeBalance() trừ balance & FIFO NEAREST-EXPIRY — đây là lúc balance thực sự bị trừ. Sau đó UPDATE order/transaction → successful, UPDATE isChangingBalance=false để unlock. Rewards Core trả về status (completed/pending) — xem bước callback bên dưới.',
+        validates: [
+          { check: 'chargeBalance(prepaidCardTokenId=8801, orderId=40002, total=50000)', result: 'FIFO debit: entry gần hết hạn nhất bị trừ 50,000 ✓' },
+          { check: 'UPDATE prepaid_card_tokens.balance -= 50,000', result: '50,000 → 0 ✓' },
+          { check: 'UPDATE prepaid_card_tokens.fifo — xóa entry hết amount', result: 'fifo[] cập nhật ✓' },
+          { check: 'UPDATE orders { status:"successful", code:"<voucher-code>" }', result: 'orderId=40002 → successful ✓' },
+          { check: 'UPDATE transactions { status:"successful" }', result: 'txn=60004 → successful ✓' },
+          { check: 'SET prepaid_card_tokens.isChangingBalance = false (unlock)', result: 'Unlocked ✓' },
+        ],
+        db: [
+          { table: 'prepaid_card_tokens', op: 'upd', label: 'chargeBalance — DEBIT FIFO', record: {
+            id: 8801,
+            'balance (before)': 50000, 'balance (after)': 0,
+            'availableBalance': '0 (đã hold trước — không đổi nữa)',
+            'fifo (before)': '[{ amount:50000, expiredAt:"2026-12-31" }]',
+            'fifo (after)': '[] (entry bị xóa)',
+            'isChangingBalance': 'true → false (unlock)'
+          }},
+          { table: 'orders', op: 'upd', label: 'UPDATE order → successful', record: {
+            id: 40002, 'status': 'pending → successful',
+            'code': '"STBK-XXXX-YYYY"'
+          }},
+          { table: 'transactions', op: 'upd', label: 'UPDATE transaction → successful', record: {
+            id: 60004, 'status': 'pending → successful',
+            'fifoCharge': '[{ amount:50000, expiredAt:"2026-12-31" }]'
+          }}
+        ]
+      },
+      {
+        id: 'callback_b2c_pts',
+        label: 'Callback (nếu pending)',
+        sublabel: '⚠️ CHỈ gửi khi Rewards Core trả status=pending',
+        note: 'Rewards Core quyết định sync/async. Nếu status=completed → UrCard trả response 200 kèm codes ngay, KHÔNG có callback. Nếu status=pending → UrCard trả { status:"pending", transactionId } về client. Khi Rewards Core xử lý xong → POST inbound callback vào UrCard → UrCard ghi log inbound → POST outbound callback về clients.callbackUrl.',
+        validates: [
+          { check: 'Rewards Core buyVouchers trả status', result: '"completed" hoặc "pending"' },
+          { check: 'Nếu completed → response 200 { status:"completed", codes:["STBK-XXXX-YYYY"] }', result: 'Kết thúc — không callback ✓' },
+          { check: 'Nếu pending → response 200 { status:"pending", transactionId:"txn-60004" }', result: 'Client tự chờ callback ✓' },
+          { check: '[Async] Rewards Core POST inbound callback vào UrCard', result: 'Nhận & ghi inbound log ✓' },
+          { check: '[Async] UrCard POST outbound callback về clients.callbackUrl', result: 'Forward callback → client ✓' },
+        ],
+        request: {
+          method: 'POST', url: 'clients.callbackUrl (outbound từ UrCard)',
+          headers: { 'Content-Type': 'application/json', 'x-urcard-signature': 'RSA-SHA256...' },
+          body: { status: 'completed', transactionId: 'txn-60004', orderId: 40002, codes: ['STBK-XXXX-YYYY'], requestId: 'eu-20250101-REQ-0042' }
+        },
+        db: [
+          { table: 'callback_logs', op: 'ins', label: 'INSERT inbound log (từ Rewards Core)', record: {
+            direction: 'inbound', status: 'received',
+            payload: '{ status:"completed", rewardsCoreRef:"RC-00123" }',
+            '⚠️ ghi chú': 'Rewards Core → UrCard'
+          }},
+          { table: 'callback_logs', op: 'ins', label: 'INSERT outbound log (tới client)', record: {
+            direction: 'outbound', status: 'sent',
+            payload: '{ status:"completed", transactionId:"txn-60004", codes:["STBK-XXXX-YYYY"] }',
+            '⚠️ ghi chú': 'UrCard → clients.callbackUrl'
+          }}
+        ]
+      },
+      {
+        id: 'error_rollback_b2c_pts',
+        label: '⚠️ Lỗi & Rollback (điểm)',
+        sublabel: 'Rewards Core lỗi → auto rollback balance',
+        note: 'Nếu Rewards Core buyVouchers lỗi SAU khi chargeBalance đã trừ điểm → auto topup hoàn điểm (topupService.topup với reason=REFUND_TRANSACTION, increaseFifoData=fifoCharge). Nếu lỗi TRƯỚC chargeBalance → chỉ cần releaseAvailableBalance. finally block LUÔN chạy: removeFlagIsChangingCard (unlock isChangingBalance dù lỗi hay không).',
+        validates: [
+          { check: 'Rewards Core buyVouchers trả lỗi (vd: hết hàng, timeout)', result: 'throw BadRequestException { code:"BUY_VOUCHER_ERROR" }' },
+          { check: 'processing.chargedBalance = true → cần hoàn điểm', result: 'Đã trừ → phải topup lại ✓' },
+          { check: 'topupService.topup(amount=50000, reason=REFUND_TRANSACTION, fifoCharge)', result: 'Hoàn 50,000 điểm vào đúng FIFO entry ✓' },
+          { check: 'UPDATE orders { status:"aborted", params.isRefunded:true }', result: 'orderId=40002 → aborted ✓' },
+          { check: 'UPDATE transactions { params.isRefunded:true }', result: 'txn=60004 marked refunded ✓' },
+          { check: 'INSERT voucherIssuingLog (MongoDB) — ghi log lỗi + revertProcess', result: 'Log saved ✓' },
+          { check: '[finally] removeFlagIsChangingCard — SET isChangingBalance=false', result: 'Unlock dù lỗi ✓' },
+        ],
+        request: {
+          method: '—', url: 'ERROR CASE: Rewards Core buyVouchers timeout',
+          headers: {},
+          body: { error: 'REWARDS_CORE_TIMEOUT', processing: { chargedBalance: true, boughtVoucher: false } }
+        },
+        db: [
+          { table: 'prepaid_card_tokens', op: 'upd', label: 'topup.topup() — hoàn điểm FIFO', record: {
+            id: 8801,
+            'balance (before rollback)': 0, 'balance (after rollback)': 50000,
+            'availableBalance (before)': 0, 'availableBalance (after)': 50000,
+            'fifo (restored)': '[{ amount:50000, expiredAt:"2026-12-31" }]',
+            '⚠️ ghi chú': 'hoàn đúng FIFO entry cũ nhờ fifoCharge được lưu lại'
+          }},
+          { table: 'orders', op: 'upd', label: 'UPDATE order → aborted', record: {
+            id: 40002, 'status': 'pending → aborted',
+            'params.isRefunded': true
+          }},
+          { table: 'transactions', op: 'upd', label: 'UPDATE transaction — mark refunded', record: {
+            id: 60004, 'params.isRefunded': true
+          }},
+          { table: 'voucher_issuing_logs (MongoDB)', op: 'ins', label: 'INSERT error log', record: {
+            type: 'BUY_VOUCHER', status: 'failed',
+            processing: '{ chargedBalance:true, boughtVoucher:false }',
+            revertProcess: '{ toppedUpBalance:true, cancelledOrder:true }',
+            error: 'REWARDS_CORE_TIMEOUT'
+          }},
+          { table: 'prepaid_card_tokens', op: 'upd', label: '[finally] removeFlagIsChangingCard', record: {
+            id: 8801, 'isChangingBalance': 'true → false (luôn unlock dù lỗi)'
+          }}
+        ]
+      }
+    ]
+  },
+
+  b2c_catalog: {
+    label: 'Dùng lượt (B2C)',
+    desc: 'End-user dùng 1 lượt (catalog quantity) để đổi quà qua paymentWithCart — flow: lock → check quantity → order/txn → buyVouchers → DEBIT quantity → unlock',
+    steps: [
+      {
+        id: 'request_cat',
+        label: 'Gửi request',
+        sublabel: 'POST /api/v1/enduser/gift/execute (paymentWithCart)',
+        note: 'End-user gửi body đơn giản với giftDetailId và quantity (số lượt muốn dùng). requestId là chuỗi tự do — KHÔNG bắt buộc UUID.',
+        validates: [
+          { check: 'Authorization hợp lệ', result: 'JWT valid ✓' },
+          { check: 'body.requestId không rỗng (không bắt buộc UUID)', result: '"eu-cat-20250115-0099" ✓' },
+          { check: 'body.cardId không rỗng', result: 'cardId=20001 ✓' },
+          { check: 'body.giftDetailId không rỗng', result: '"gd-cat-voucher-001" ✓' },
+          { check: 'body.quantity > 0 (số lượt muốn dùng)', result: '1 ✓' },
+        ],
+        request: {
+          method: 'POST', url: '/api/v1/enduser/gift/execute',
+          headers: { 'Authorization': 'Bearer eyJhbGciOiJSUzI1NiJ9...', 'Content-Type': 'application/json' },
+          body: {
+            client: 'VIB',
+            campaignCode: 'VIB_LOYALTY_2025',
+            requestId: 'eu-cat-20250115-0099',
+            cardId: 20001,
+            siteUserId: 'user-vib-12345',
+            giftDetailId: 'gd-cat-voucher-001',
+            quantity: 1
+          }
+        },
+        db: []
+      },
+      {
+        id: 'check_catalog_b2c',
+        label: 'Validate & kiểm tra lượt',
+        sublabel: 'Lookup catalog_card_fifos — quantity chung',
+        note: '⚠️ Lượt (catalog) dùng quantity — KHÔNG phải balance/fifo như điểm. Tra giftDetailId để lấy giftsetId, sau đó kiểm tra tổng quantity trong catalog_card_fifos phải >= body.quantity.',
+        validates: [
+          { check: 'Lookup card WHERE id=20001 status="activated"', result: 'cardId=20001, catalogCardTokenId=9901 ✓' },
+          { check: 'Lookup catalogCardToken WHERE id=9901', result: 'isChangingBalance=false ✓' },
+          { check: 'SET catalogCardToken.isChangingBalance = true (lock)', result: 'Locked ✓' },
+          { check: 'Gọi Rewards Core getGiftVouchersDetail(giftDetailId) → lấy giftType, giftsetId', result: 'type=topup_catalog, giftsetId="gs-cat-001" ✓' },
+          { check: 'SELECT catalog_card_fifos WHERE tags ∋ giftsetId AND expiration >= now()', result: '1 entry: quantity=3 ✓' },
+          { check: 'Tổng quantity (3) >= body.quantity (1)', result: '3 ≥ 1 ✓' },
+        ],
+        db: [
+          { table: 'catalog_card_tokens', op: 'upd', label: 'Lock isChangingBalance', record: {
+            id: 9901, 'isChangingBalance': 'false → true'
+          }},
+          { table: 'catalog_card_fifos', op: 'ctx', label: 'Đọc FIFO lượt (quantity chung)', record: {
+            id: 5501, catalogCardTokenId: 9901, quantity: 3,
+            'tags': '["giftset:gs-cat-001"]',
+            expiration: '2026-06-30T23:59:59.000Z',
+            '⚠️ ghi chú': 'quantity là lượt — không phải điểm, đơn vị là 1 lượt'
+          }}
+        ]
+      },
+      {
+        id: 'order_txn_cat',
+        label: 'Tạo Order + Transaction + gọi UrBox',
+        sublabel: 'INSERT orders/transactions → buyVouchers → fulfill',
+        note: 'INSERT order (pending) → INSERT transaction → gọi Rewards Core buyVouchers(giftDetailId, quantity=body.quantity, siteUserId). Nếu Rewards Core lỗi → cancel order/transaction, release lock.',
+        validates: [
+          { check: 'INSERT orders { status:"pending", subtotal:1, total:1 }', result: 'orderId=40003 ✓' },
+          { check: 'INSERT transactions { type:"client-catalog-card-payment", status:"pending" }', result: 'transactionId=60005 ✓' },
+          { check: 'Gọi Rewards Core buyVouchers(giftDetailId, quantity=1, siteUserId)', result: 'status=200, done=1 ✓' },
+          { check: 'Nhận voucher code từ Rewards Core', result: '"CAT-XXXX-ZZZZ" ✓' },
+        ],
+        db: [
+          { table: 'orders', op: 'ins', label: 'INSERT order (pending)', record: {
+            id: 40003, status: 'pending', subTotal: 1, total: 1,
+            customerId: 5001, cardId: 20001,
+            'channelDetail': '{ source:"VIB", siteUserId:"user-vib-12345" }'
+          }},
+          { table: 'transactions', op: 'ins', label: 'INSERT transaction (pending)', record: {
+            id: 60005, type: 'client-catalog-card-payment', status: 'pending',
+            amount: 1, cardId: 20001, customerId: 5001
+          }}
+        ]
+      },
+      {
+        id: 'debit_qty_unlock',
+        label: 'DEBIT lượt & hoàn tất',
+        sublabel: 'UPDATE catalog_card_fifos quantity → unlock → successful',
+        note: 'Trừ quantity của FIFO entry gần hết hạn nhất (FIFO theo expiration asc). UPDATE orders/transactions → successful. Unlock isChangingBalance=false.',
+        validates: [
+          { check: 'DEBIT catalog_card_fifos gần hết hạn nhất: quantity -= 1', result: '3 → 2 ✓' },
+          { check: 'UPDATE orders { status:"successful", code:"CAT-XXXX-ZZZZ" }', result: 'orderId=40003 → successful ✓' },
+          { check: 'UPDATE transactions { status:"successful" }', result: 'txn=60005 → successful ✓' },
+          { check: 'SET catalogCardToken.isChangingBalance = false (unlock)', result: 'Unlocked ✓' },
+        ],
+        db: [
+          { table: 'catalog_card_fifos', op: 'upd', label: 'DEBIT lượt FIFO', record: {
+            id: 5501,
+            'quantity (before)': 3, 'quantity (after)': 2,
+            '⚠️ ghi chú': 'lượt = quantity, không phải điểm/balance'
+          }},
+          { table: 'orders', op: 'upd', label: 'UPDATE order → successful', record: {
+            id: 40003, 'status': 'pending → successful', 'code': '"CAT-XXXX-ZZZZ"'
+          }},
+          { table: 'transactions', op: 'upd', label: 'UPDATE transaction → successful', record: {
+            id: 60005, 'status': 'pending → successful'
+          }},
+          { table: 'catalog_card_tokens', op: 'upd', label: 'Unlock', record: {
+            id: 9901, 'isChangingBalance': 'true → false'
+          }}
+        ]
+      },
+      {
+        id: 'callback_b2c_cat',
+        label: 'Callback (nếu pending)',
+        sublabel: '⚠️ CHỈ gửi khi Rewards Core trả status=pending',
+        note: 'Rewards Core quyết định sync/async. Nếu status=completed → UrCard trả response 200 kèm codes ngay, KHÔNG có callback. Nếu status=pending → UrCard trả { status:"pending", transactionId } về client. Khi Rewards Core xử lý xong → POST inbound callback vào UrCard → UrCard ghi log inbound → POST outbound callback về clients.callbackUrl.',
+        validates: [
+          { check: 'Rewards Core buyVouchers trả status', result: '"completed" hoặc "pending"' },
+          { check: 'Nếu completed → response 200 { status:"completed", codes:["CAT-XXXX-ZZZZ"] }', result: 'Kết thúc — không callback ✓' },
+          { check: 'Nếu pending → response 200 { status:"pending", transactionId:"txn-60005" }', result: 'Client tự chờ callback ✓' },
+          { check: '[Async] Rewards Core POST inbound callback vào UrCard', result: 'Nhận & ghi inbound log ✓' },
+          { check: '[Async] UrCard POST outbound callback về clients.callbackUrl', result: 'Forward callback → client ✓' },
+        ],
+        request: {
+          method: 'POST', url: 'clients.callbackUrl (outbound từ UrCard)',
+          headers: { 'Content-Type': 'application/json', 'x-urcard-signature': 'RSA-SHA256...' },
+          body: { status: 'completed', transactionId: 'txn-60005', orderId: 40003, codes: ['CAT-XXXX-ZZZZ'], requestId: 'eu-cat-20250115-0099' }
+        },
+        db: [
+          { table: 'callback_logs', op: 'ins', label: 'INSERT inbound log (từ Rewards Core)', record: {
+            direction: 'inbound', status: 'received',
+            payload: '{ status:"completed", rewardsCoreRef:"RC-00124" }',
+            '⚠️ ghi chú': 'Rewards Core → UrCard'
+          }},
+          { table: 'callback_logs', op: 'ins', label: 'INSERT outbound log (tới client)', record: {
+            direction: 'outbound', status: 'sent',
+            payload: '{ status:"completed", transactionId:"txn-60005", codes:["CAT-XXXX-ZZZZ"] }',
+            '⚠️ ghi chú': 'UrCard → clients.callbackUrl'
+          }}
+        ]
+      },
+      {
+        id: 'error_rollback_b2c_cat',
+        label: '⚠️ Lỗi & Rollback (lượt)',
+        sublabel: 'Rewards Core lỗi → cancel order/txn + unlock',
+        note: 'Lượt (catalog) KHÔNG có chargeBalance trước khi gọi Rewards Core — quantity chỉ bị trừ SAU khi buyVouchers thành công. Nếu Rewards Core lỗi → KHÔNG cần hoàn lượt (chưa trừ). Chỉ cần cancel order/transaction → ABORTED, ghi log lỗi. finally block LUÔN unlock catalogCardToken.isChangingBalance=false.',
+        validates: [
+          { check: 'Rewards Core buyVouchers trả lỗi (vd: hết gift, lỗi mạng)', result: 'throw BadRequestException { code:"BUY_VOUCHER_ERROR" }' },
+          { check: 'processing.chargedBalance = false (lượt chưa bị trừ) → KHÔNG cần hoàn', result: 'Không rollback quantity ✓' },
+          { check: 'processing.createdTransaction = true → cancel transaction', result: 'UPDATE transactions → ABORTED ✓' },
+          { check: 'processing.createdPendingOrder = true → cancel order', result: 'UPDATE orders → ABORTED ✓' },
+          { check: 'INSERT voucherIssuingLog (MongoDB) — ghi log lỗi', result: 'Log saved ✓' },
+          { check: '[finally] SET catalogCardToken.isChangingBalance = false (unlock)', result: 'Unlock dù lỗi ✓' },
+        ],
+        request: {
+          method: '—', url: 'ERROR CASE: Rewards Core buyVouchers lỗi hết gift',
+          headers: {},
+          body: { error: 'GIFT_OUT_OF_STOCK', processing: { createdPendingOrder: true, createdTransaction: true, chargedBalance: false, boughtVoucher: false } }
+        },
+        db: [
+          { table: 'catalog_card_fifos', op: 'ctx', label: 'KHÔNG thay đổi (chưa trừ lượt)', record: {
+            id: 5501, quantity: 3,
+            '⚠️ ghi chú': 'lượt KHÔNG bị trừ vì Rewards Core chưa gọi được — không cần rollback'
+          }},
+          { table: 'transactions', op: 'upd', label: 'UPDATE transaction → aborted', record: {
+            id: 60005, 'status': 'pending → aborted'
+          }},
+          { table: 'orders', op: 'upd', label: 'UPDATE order → aborted', record: {
+            id: 40003, 'status': 'pending → aborted',
+            'params.error': '{ code:"GIFT_OUT_OF_STOCK", message:"Hết hàng" }'
+          }},
+          { table: 'voucher_issuing_logs (MongoDB)', op: 'ins', label: 'INSERT error log', record: {
+            type: 'BUY_VOUCHER', status: 'failed',
+            processing: '{ chargedBalance:false, boughtVoucher:false }',
+            revertProcess: '{ cancelledTransaction:true, cancelledOrder:true }',
+            error: 'GIFT_OUT_OF_STOCK'
+          }},
+          { table: 'catalog_card_tokens', op: 'upd', label: '[finally] Unlock isChangingBalance', record: {
+            id: 9901, 'isChangingBalance': 'true → false (luôn unlock dù lỗi)'
+          }}
+        ]
+      }
+    ]
+  },
+
+  voucher: {
+    label: 'Đổi voucher (B2B)',
+    desc: 'End-user dùng 50,000 điểm để đổi voucher Starbucks 100k qua API gift/execute',
+    steps: [
+      {
+        id: 'request',
+        label: 'Gửi request',
+        sublabel: 'POST /api/v1/client/gift/execute',
+        note: 'Client gửi request với giftDetailId loại evoucher. End-user dùng 50,000 điểm để nhận voucher Starbucks 100k.',
+        validates: [
+          { check: 'x-profile-id + x-access-token có trong header', result: 'prf-vib-001 ✓' },
+          { check: 'body.requestId không rỗng (chuỗi bất kỳ — không bắt buộc UUID)', result: '"req-c3d4e5f6-..." ✓' },
+          { check: 'body.partnerTransactionId không rỗng', result: '"VIB-TXN-20250101-000125" ✓' },
+          { check: 'body.requestTime ISO 8601 trong 20 phút', result: 'Δ = 0s ✓' },
+        ],
+        request: {
+          method: 'POST', url: '/api/v1/client/gift/execute',
+          headers: { 'x-profile-id': 'prf-vib-001', 'x-access-token': 'tok-vib-acc-xyz' },
+          body: {
+            campaignCode: 'VIB_LOYALTY_2025',
+            giftDetailId: 'gd-990e8400-evoucher-starbucks',
+            requestId: 'req-c3d4e5f6-a7b8-9012-cdef',
+            partnerTransactionId: 'VIB-TXN-20250101-000125',
+            requestTime: '2025-01-01T14:00:00.000Z',
+            siteUserId: 'user-vib-98765',
+            signature: '<RSA SHA256 base64>'
+          }
+        },
+        db: []
+      },
+      {
+        id: 'auth_idem_v',
+        label: 'Xác thực & idempotency',
+        sublabel: 'Tương tự topup, khác ở giftDetail type',
+        note: 'Sau khi xác thực và ghi log, Rewards Core xác nhận giftDetail type=evoucher_partner. Luồng rẽ sang nhánh Voucher thay vì topup_points.',
+        validates: [
+          { check: 'Lookup clients + verify RSA signature', result: 'clients.id = 12 ✓' },
+          { check: '"VIB_LOYALTY_2025" ∈ clients.campaignCode[]', result: '✓' },
+          { check: 'INSERT client_redeem_request_logs — không duplicate', result: 'INSERT ✓' },
+          { check: 'Lookup gift_details WHERE id = "gd-990e8400-evoucher-starbucks"', result: 'Tìm thấy ✓' },
+          { check: 'giftDetail.status = "active"', result: '"active" ✓' },
+          { check: 'giftDetail.type ∈ [evoucher_partner, evoucher_urbox, topup_partner, ...]', result: '"evoucher_partner" ✓ → nhánh Voucher' },
+        ],
+        db: [
+          { table: 'client_redeem_request_logs (MongoDB)', op: 'ins', label: 'INSERT idempotency log', record: {
+            requestId: 'req-c3d4e5f6-a7b8-9012-cdef',
+            partnerTransactionId: 'VIB-TXN-20250101-000125',
+            createdAt: '2025-01-01T14:00:00.100Z'
+          }},
+          { table: 'gift_details', op: 'ctx', label: 'Lookup giftDetail', record: {
+            id: 'gd-990e8400-evoucher-starbucks',
+            type: 'evoucher_partner', status: 'active',
+            'price (điểm)': 50000, name: 'Voucher Starbucks 100k'
+          }}
+        ]
+      },
+      {
+        id: 'order_pending',
+        label: 'Tạo Order pending',
+        sublabel: 'INSERT orders + transactions',
+        note: 'Tạo order với status=pending. Transaction type=client-voucher-payment. Order sẽ được cập nhật code sau khi fulfill thành công.',
+        validates: [
+          { check: 'Lookup card WHERE customerId=5001 AND campaignId=77', result: 'cardId = 20001 ✓' },
+          { check: 'card.status = "activated"', result: '"activated" ✓' },
+          { check: 'INSERT orders { status:"pending", total:50000 }', result: 'orderId = 40001 ✓' },
+          { check: 'INSERT transactions { type:"client-voucher-payment", status:"pending" }', result: 'transactionId = 60003 ✓' },
+        ],
+        db: [
+          { table: 'orders', op: 'ins', label: 'INSERT order (pending)', record: {
+            id: 40001, type: 'GIFT_EXECUTE', status: 'pending',
+            subtotal: 50000, total: 50000,
+            'customer (jsonb)': '{ id:5001, siteUserId:"user-vib-98765" }',
+            'card (jsonb)': '{ id:20001, number:"4111000000020001" }',
+            code: null
+          }},
+          { table: 'transactions', op: 'ins', label: 'INSERT transaction (pending)', record: {
+            id: 60003, orderId: 40001, cardId: 20001, customerId: 5001,
+            type: 'client-voucher-payment', status: 'pending', amount: 50000
+          }}
+        ]
+      },
+      {
+        id: 'fulfill',
+        label: 'Fulfill voucher',
+        sublabel: 'Gọi Inventory / Provider',
+        note: 'Rewards Core gửi request đến Inventory layer để lấy mã voucher Starbucks. Inventory gọi provider bên ngoài. UrCard chờ kết quả (đồng bộ hoặc async tùy cấu hình provider).',
+        validates: [
+          { check: 'Lookup voucher inventory cho giftDetailId "gd-990e8400-evoucher-starbucks"', result: 'Còn hàng trong inventory ✓' },
+          { check: 'Gọi provider Starbucks API để lấy mã voucher', result: 'HTTP 200 → code = "SBX-2025-ABCD-1234"' },
+          { check: 'INSERT voucher_issuing_logs { status:"success" }', result: '✓' },
+        ],
+        db: [
+          { table: 'voucher_issuing_logs (MongoDB)', op: 'ins', label: 'INSERT voucher issuing log', record: {
+            type: 'BUY_VOUCHER', status: 'success',
+            'request.giftDetailId': 'gd-990e8400-evoucher-starbucks',
+            'request.orderId': 40001,
+            'response.code': 'SBX-2025-ABCD-1234',
+            createdAt: '2025-01-01T14:00:01.500Z'
+          }}
+        ]
+      },
+      {
+        id: 'fulfill_ok',
+        label: 'Fulfill thành công',
+        sublabel: 'UPDATE orders + transactions → successful',
+        note: 'Cập nhật order với mã voucher nhận được. Transaction chuyển sang successful.',
+        validates: [
+          { check: 'fulfill trả về codes[] không rỗng', result: '["SBX-2025-ABCD-1234"] ✓' },
+          { check: 'UPDATE orders.status = "successful", orders.code = "SBX-2025-ABCD-1234"', result: 'orderId = 40001 ✓' },
+          { check: 'UPDATE transactions.status = "successful"', result: 'transactionId = 60003 ✓' },
+        ],
+        db: [
+          { table: 'orders', op: 'upd', label: 'UPDATE → successful + code', record: {
+            id: 40001,
+            'status (before)': 'pending', 'status (after)': 'successful',
+            'code (before)': null, 'code (after)': 'SBX-2025-ABCD-1234'
+          }},
+          { table: 'transactions', op: 'upd', label: 'UPDATE → successful', record: {
+            id: 60003,
+            'status (before)': 'pending', 'status (after)': 'successful'
+          }}
+        ]
+      },
+      {
+        id: 'callback_voucher',
+        label: 'Callback về client (nếu pending)',
+        sublabel: 'POST → clients.callbackUrl — CHỈ khi status=pending',
+        note: '⚠️ Callback CHỈ gửi nếu response trả status=pending. Nếu status=completed → mã voucher đã có ngay trong response, client không cần chờ. Khi có callback: POST đến callbackUrl với data.codes[] chứa mã voucher.',
+        validates: [
+          { check: 'Đọc clients.callbackUrl cho clientId = 12', result: '"https://vib.vn/webhook/urcard" ✓' },
+          { check: 'INSERT callback_logs { direction:"outbound", status:"pending" }', result: '✓' },
+          { check: 'POST với body data.codes = ["SBX-2025-ABCD-1234"]', result: 'HTTP 200 OK ✓' },
+          { check: 'UPDATE callback_logs.status = "success", lastResponseCode = 200', result: '✓' },
+        ],
+        request: {
+          method: 'POST', url: 'https://vib.vn/webhook/urcard (outbound)',
+          headers: { 'x-profile-id': 'prf-vib-001', 'x-access-token': 'tok-vib-acc-xyz' },
+          body: {
+            event: 'gift.execute.success',
+            requestId: 'req-c3d4e5f6-a7b8-9012-cdef',
+            partnerTransactionId: 'VIB-TXN-20250101-000125',
+            status: 'success',
+            data: {
+              transactionId: 60003, orderId: 40001,
+              codes: ['SBX-2025-ABCD-1234'],
+              giftName: 'Voucher Starbucks 100k'
+            }
+          }
+        },
+        db: [
+          { table: 'callback_logs (MongoDB)', op: 'ins', label: 'INSERT callback log', record: {
+            direction: 'outbound', clientId: 12,
+            requestId: 'req-c3d4e5f6-a7b8-9012-cdef',
+            partnerTransactionId: 'VIB-TXN-20250101-000125',
+            status: 'success', attempts: 1, lastResponseCode: 200
+          }}
+        ]
+      }
+    ]
+  }
+};
+
+// ─── VALIDATE ANIMATIONS ──────────────────────────────────
+let _validateTimer = null;
+function animateValidates(stepEl) {
+  const items = stepEl.querySelectorAll('.ex-vld-item');
+  items.forEach(el => { el.setAttribute('data-state','pending'); });
+  let i = 0;
+  function next() {
+    if (i > 0) items[i-1].setAttribute('data-state','pass');
+    if (i < items.length) {
+      items[i].setAttribute('data-state','checking');
+      i++;
+      _validateTimer = setTimeout(next, 340);
+    }
+  }
+  next();
+}
+
+// ─── EXAMPLE RENDER ───────────────────────────────────────
+let exScenario = 'topup_points';
+let exStep = 0;
+
+function renderExampleView() {
+  const view = document.getElementById('example-view');
+  view.style.display = 'flex';
+  view.style.flexDirection = 'column';
+  view.style.overflow = 'hidden';
+  view.innerHTML = `
+    <div class="ex-layout">
+      <div class="ex-sidebar">
+        <div class="ex-sidebar-header"><div class="ex-sidebar-title">Loại ví dụ</div></div>
+        <div class="ex-subtab">
+          <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;padding:6px 12px 2px">B2B — CLIENT</div>
+          ${['topup_points','topup_catalog','voucher'].map(k => `
+            <button class="ex-subtab-btn${exScenario===k?' active':''}" onclick="switchExScenario('${k}')">${EXAMPLES[k].label}</button>
+          `).join('')}
+          <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;padding:10px 12px 2px">B2C — END-USER</div>
+          ${['b2c_points','b2c_catalog'].map(k => `
+            <button class="ex-subtab-btn${exScenario===k?' active':''}" onclick="switchExScenario('${k}')">${EXAMPLES[k].label}</button>
+          `).join('')}
+        </div>
+        <div class="ex-step-list" id="ex-step-list"></div>
+      </div>
+      <div class="ex-main">
+        <div class="ex-nav-bar">
+          <button class="ex-nav-btn" id="ex-prev" onclick="exNav(-1)">← Trước</button>
+          <button class="ex-nav-btn primary" id="ex-next" onclick="exNav(1)">Tiếp →</button>
+          <span class="ex-counter" id="ex-counter"></span>
+          <div class="ex-step-title" id="ex-step-title"></div>
+          <span style="font-size:11px;color:#94a3b8">← → phím tắt</span>
+        </div>
+        <div class="ex-content" id="ex-content"></div>
+      </div>
+    </div>
+  `;
+  renderExStep();
+}
+
+function switchExScenario(key) {
+  exScenario = key;
+  exStep = 0;
+  renderExampleView();
+}
+
+function exNav(dir) {
+  const steps = EXAMPLES[exScenario].steps;
+  exStep = Math.max(0, Math.min(steps.length - 1, exStep + dir));
+  renderExStep();
+}
+
+function renderExStep() {
+  const scenario = EXAMPLES[exScenario];
+  const steps = scenario.steps;
+  const step = steps[exStep];
+
+  // sidebar step list
+  const listEl = document.getElementById('ex-step-list');
+  if (listEl) {
+    listEl.innerHTML = steps.map((s, i) => `
+      <div class="ex-step-item${i===exStep?' active':i<exStep?' done':''}" onclick="exStep=${i};renderExStep()">
+        <div class="ex-step-dot">${i < exStep ? '✓' : i+1}</div>
+        <div class="ex-step-info">
+          <div class="ex-step-label">${s.label}</div>
+          <div class="ex-step-sublabel">${s.sublabel||''}</div>
+        </div>
+      </div>
+      ${i < steps.length-1 ? '<div class="ex-connector"></div>' : ''}
+    `).join('');
+  }
+
+  // nav bar
+  const prevBtn = document.getElementById('ex-prev');
+  const nextBtn = document.getElementById('ex-next');
+  const counter = document.getElementById('ex-counter');
+  const titleEl = document.getElementById('ex-step-title');
+  if (prevBtn) prevBtn.disabled = exStep === 0;
+  if (nextBtn) nextBtn.disabled = exStep === steps.length - 1;
+  if (counter) counter.textContent = `${exStep+1} / ${steps.length}`;
+  if (titleEl) titleEl.textContent = step.label;
+
+  // content
+  const content = document.getElementById('ex-content');
+  if (!content) return;
+  if (_validateTimer) { clearTimeout(_validateTimer); _validateTimer = null; }
+
+  // col 1: validate checklist
+  let col1 = `<div class="ex-col" style="flex:0 0 100%;max-width:100%;">`;
+  col1 += `<div class="ex-col-title">Validate checks</div>`;
+  if (step.validates && step.validates.length) {
+    col1 += `<div class="ex-vld-list" id="ex-vld-list">`;
+    step.validates.forEach((v,i) => {
+      const resultHtml = v.result
+        ? `<div class="ex-vld-result">${escHtml(v.result)}</div>` : '';
+      col1 += `<div class="ex-vld-item" data-state="pending">
+        <div class="ex-vld-icon">
+          <span class="vld-pending">○</span>
+          <span class="vld-checking"><span class="vld-spinner"></span></span>
+          <span class="vld-pass">✓</span>
+          <span class="vld-fail">✗</span>
+        </div>
+        <div class="ex-vld-body">
+          <div class="ex-vld-text">${escHtml(v.check)}</div>
+          ${resultHtml}
+        </div>
+      </div>`;
+    });
+    col1 += `</div>`;
+  } else {
+    col1 += `<div class="ex-note" style="color:#94a3b8;font-size:12px">Bước này không có validate riêng.</div>`;
+  }
+  if (step.note) col1 += `<div class="ex-note" style="margin-top:12px"><strong>Ghi chú:</strong> ${step.note}</div>`;
+  col1 += `</div>`;
+
+  // col 2: request / response
+  let col2 = `<div class="ex-col">`;
+  col2 += `<div class="ex-col-title">Request / Response</div>`;
+  if (step.request) {
+    col2 += renderExRequest(step.request);
+  } else {
+    col2 += `<div class="ex-note" style="color:#94a3b8;font-size:12px">Bước này không gửi HTTP request mới — xử lý nội bộ.</div>`;
+  }
+  col2 += `</div>`;
+
+  // col 3: db changes
+  let col3 = `<div class="ex-col">`;
+  col3 += `<div class="ex-col-title">Database changes</div>`;
+  if (step.db && step.db.length) {
+    step.db.forEach(d => { col3 += renderExDbBlock(d); });
+  } else {
+    col3 += `<div class="ex-note" style="color:#94a3b8;font-size:12px">Không có thay đổi DB ở bước này.</div>`;
+  }
+  col3 += `</div>`;
+
+  content.innerHTML = col1 + col2 + col3;
+
+  // trigger validate animation
+  const vldList = document.getElementById('ex-vld-list');
+  if (vldList) setTimeout(() => animateValidates(vldList), 120);
+}
+
+function renderExRequest(req) {
+  const methodColor = req.method === 'POST' ? '#86efac' : '#fda4af';
+  let html = `<div class="ex-request-box">`;
+  html += `<div class="ex-request-label" style="color:#64748b">${req.method} ${req.url}</div>`;
+  if (req.headers) {
+    html += `<div class="ex-request-pre" style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #1e293b">`;
+    Object.entries(req.headers).forEach(([k,v]) => {
+      html += `<span class="ek">${escHtml(k)}</span><span style="color:#475569">: </span><span class="ev">"${escHtml(v)}"</span>\n`;
+    });
+    html += `</div>`;
+  }
+  if (req.body) {
+    html += `<div class="ex-request-pre">${syntaxJson(req.body)}</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderExDbBlock(d) {
+  const opClass = d.op === 'ins' ? 'ins' : d.op === 'upd' ? 'upd' : 'ctx';
+  const opText = d.op === 'ins' ? 'INSERT' : d.op === 'upd' ? 'UPDATE' : 'READ';
+  const recClass = d.op === 'ins' ? 'is-new' : d.op === 'upd' ? 'is-upd' : 'is-ctx';
+  let html = `<div class="ex-db-section" style="margin-bottom:12px">`;
+  html += `<div class="ex-db-table-name">${d.table}</div>`;
+  html += `<div class="ex-db-row-wrap">`;
+  html += `<div class="ex-db-record ${recClass}">`;
+  html += `<div style="margin-bottom:6px"><span class="ex-db-op-badge ${opClass}">${opText}</span><span style="font-size:11px;color:#64748b">${d.label||''}</span></div>`;
+  Object.entries(d.record).forEach(([k,v]) => {
+    html += `<div class="ex-db-field-row">
+      <span class="ex-db-field-key">${escHtml(k)}</span>
+      <span class="ex-db-field-sep">:</span>
+      <span class="ex-db-field-val">${escHtml(String(v))}</span>
+    </div>`;
+  });
+  html += `</div></div></div>`;
+  return html;
+}
+
+function syntaxJson(obj, indent=0) {
+  const pad = '  '.repeat(indent);
+  const pad1 = '  '.repeat(indent+1);
+  if (typeof obj !== 'object' || obj === null) {
+    if (typeof obj === 'string') return `<span class="ev">"${escHtml(obj)}"</span>`;
+    if (typeof obj === 'number') return `<span class="en">${obj}</span>`;
+    return `<span style="color:#fbbf24">${obj}</span>`;
+  }
+  if (Array.isArray(obj)) {
+    if (!obj.length) return '[]';
+    return `[\n${obj.map(v => pad1+syntaxJson(v,indent+1)).join(',\n')}\n${pad}]`;
+  }
+  const entries = Object.entries(obj);
+  if (!entries.length) return '{}';
+  return `{\n${entries.map(([k,v]) => `${pad1}<span class="ek">"${escHtml(k)}"</span>: ${syntaxJson(v,indent+1)}`).join(',\n')}\n${pad}}`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// keyboard for example view
+document.addEventListener('keydown', e => {
+  if (currentTab !== 'example') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); exNav(1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); exNav(-1); }
+});
+
+renderFlow(CLIENT_FLOW);
+</script>
+</body>
+</html>
